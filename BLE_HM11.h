@@ -1,7 +1,7 @@
 /**-----------------------------------------------------------------------------
  * \file    BLE_HM11.h
  * \author  jh
- * \date    xx.01.2017
+ * \date    xx.02.2017
  *
  * \version 1.0
  *
@@ -24,7 +24,7 @@
 #include <SoftwareSerial.h>
 
 /* Defines -----------------------------------------------------*/
-#define DEBUG_BLE  //blup: define to activate Debug prints
+//#define DEBUG_BLE  //blup: define to activate Debug prints
 
 /* Macros ----------------------------------------------------- */
 /* port manipulation makros */
@@ -64,10 +64,10 @@ public:
   ~BLE_HM11() {};
 
   /* public enumerations */
-  enum mode : uint8_t {I_BEACON_MODE = 0, I_BEACON_DETECTOR_MODE = 1, TRANSCEIVER_MODE = 2};
+  //...
 
   /* public typedefs */
-  typedef enum
+  typedef enum : uint32_t
   {
     BAUDRATE0 = 9600,
     BAUDRATE1 = 19200,
@@ -76,7 +76,7 @@ public:
     BAUDRATE4 = 115200
   } baudrate_t;
   
-  typedef enum
+  typedef enum : uint8_t
   {
     INTERV_100MS  = 0,
     INTERV_150MS  = 1,
@@ -92,13 +92,14 @@ public:
 
   typedef struct
   {
-    String name;
-    String uuid;
-    uint16_t major;
-    uint16_t minor;
-    advertInterval_t interv;
-    String deviceAddress;
-    int16_t txPower;
+    String name;               // 12 bytes
+    String uuid;               // 16 bytes
+    uint16_t major;            // 2 bytes
+    uint16_t minor;            // 2 bytes
+    advertInterval_t interv;   // 4 bytes
+    String accessAddress;      // 8 bytes
+    String deviceAddress;      // 12 bytes
+    int16_t txPower;           // 2 bytes
   } iBeaconData_t;
 
   /* public methods */
@@ -106,9 +107,8 @@ public:
   void end();
   void setupAsIBeacon(iBeaconData_t *iBeacon);  // necessaray: name, uuid, major, minor, interv
   void setupAsIBeaconDetector();
-  void detectIBeacons();
-
-  void forceRenew();
+  bool detectIBeacon(iBeaconData_t *iBeacon, uint16_t maxTimeToSearch = DEFAULT_DETECTION_TIME);  // necessary: uuid (you want to search for)
+  void forceRenew();  // try this if you can not communicate with the BLE-module anymore
 
 private:
   /* attributes */
@@ -122,25 +122,18 @@ private:
   static const baudrate_t DEFAULT_BAUDRATE         = BAUDRATE0;
   static const uint8_t DEFAULT_RESPONSE_LENGTH     = 8;          // in characters
   static const uint16_t COMMAND_TIMEOUT_TIME       = 100;        // in ms (discovered empirically)
-  static const uint16_t DELAY_AFTER_ENABLE_BLE     = 200;        // in ms (discovered empirically)
-  static const uint16_t DELAY_AFTER_HW_RESET_BLE   = 100;        // in ms (discovered empirically)
+  static const uint16_t DELAY_AFTER_HW_RESET_BLE   = 300;        // in ms (discovered empirically)
   static const uint16_t DELAY_AFTER_SW_RESET_BLE   = 900;        // in ms (discovered empirically)
 
   // I-Beacon detector
-  static const uint16_t MAX_NUMBER_IBEACONS        = 6;          // max = 6 (keep the RAM in minde!)
-  static const uint16_t NUMBER_DEVICES_TO_CONSIDER = 2;          // number of found devices to consider before sending a message
-
-  // static const uint32_t OUT_OF_RANGE_TIME          = (2*60000);  // in ms
-  // static const uint16_t DETECTION_TIME_OFFSET      = 700;        // in ms (discovered empirically)
-  // static const uint16_t MIN_TIME_BEFORE_EN_FORCE   = 1000;       // in ms
-  // static const uint16_t MAX_DETECTION_TIME         = 5000;       // in ms
-  // static const uint16_t NUMBER_CHARS_PER_DEVICE    = 78;         // including the "OK+DISC:"
+  static const uint16_t DEFAULT_DETECTION_TIME     = 5000;       // in ms
+  static const uint16_t MIN_RAM                    = 253;        // in bytes -> keep the RAM > 200 to prevent bugs!
+  //static const uint16_t MAX_NUMBER_IBEACONS        = 6;          // max = 6 (keep the RAM in minde!)
+  //static const uint16_t NUMBER_CHARS_PER_DEVICE    = 78;         // including the "OK+DISC:"
   
   /* private variables */
   uint32_t baudrate_;
-  uint32_t timeOfLastMatch_;
-  String lastMatchDeviceAddresses_[NUMBER_DEVICES_TO_CONSIDER];
-  iBeaconData_t iBeaconData_[MAX_NUMBER_IBEACONS];
+  //iBeaconData_t iBeaconData_[MAX_NUMBER_IBEACONS];
 
   /* private methods */
   void enableBLE();
@@ -152,8 +145,11 @@ private:
   String getConf(String cmd);
   baudrate_t getBaudrate();
   String sendDirectBLECommand(String cmd);
+  int16_t getFreeRAM();
   String byteToHexString(uint8_t hex);
+  uint8_t hexStringToByte(String str);
   char nibbleToHexCharacter(uint8_t nibble);
+  uint8_t hexCharacterToNibble(char hex);
 };
 
 #endif
