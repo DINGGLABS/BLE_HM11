@@ -61,17 +61,17 @@ void BLE_HM11::end()
   disableBLE();
 }
 
-void BLE_HM11::setupAsIBeacon(String name, String uuid, uint16_t major, uint16_t minor, advertInterval_t interv)
+void BLE_HM11::setupAsIBeacon(iBeaconData_t *iBeacon)
 {
   Serial.println(F("setup BLE-Module as I-Beacon"));
 
   /* control if given parameters are valid */
-  if (name.length() > 12) {Serial.println(F("name ist too long!")); return;}
+  if ((iBeacon->name).length() > 12) {Serial.println(F("name ist too long!")); return;}
   bool uuidValid = true;
-  if (uuid.length() != 16) uuidValid = false;
+  if ((iBeacon->uuid).length() != 16) uuidValid = false;
   for (uint8_t n = 0; n < 16; n++)
   {
-    if (uuid[n] < '1' || uuid[n] > '9')
+    if ((iBeacon->uuid)[n] < '1' || (iBeacon->uuid)[n] > '9')
     {
       uuidValid = false;
       break;
@@ -82,19 +82,19 @@ void BLE_HM11::setupAsIBeacon(String name, String uuid, uint16_t major, uint16_t
     Serial.println(F("The UUID has to consist of 16 numbers (1... 9)!"));
     return;
   }
-  if (major == 0) {Serial.println(F("major can not be 0!")); return;}
-  if (minor == 0) {Serial.println(F("minor can not be 0!")); return;}
-  if (interv > INTERV_1285MS) {Serial.println(F("unallowed interval!")); return;}
+  if (iBeacon->major == 0) {Serial.println(F("major can not be 0!")); return;}
+  if (iBeacon->minor == 0) {Serial.println(F("minor can not be 0!")); return;}
+  if ((iBeacon->interv == 0) || (iBeacon->interv > INTERV_1285MS)) {Serial.println(F("unallowed interval!")); return;}
 
   /* convert given parameters to hex values */
   String uuidHex = "";
   uuidHex.reserve(32);
   for (uint8_t n = 0; n < 16; n++)
   {
-    uuidHex += byteToHexString(uint8_t(uuid[n] - '0'));
+    uuidHex += byteToHexString(uint8_t((iBeacon->uuid)[n] - '0'));
   }
-  String majorHex = byteToHexString(uint8_t((major & 0xFF00) >> 8)) + byteToHexString(uint8_t(major));
-  String minorHex = byteToHexString(uint8_t((minor & 0xFF00) >> 8)) + byteToHexString(uint8_t(minor));
+  String majorHex = byteToHexString(uint8_t((iBeacon->major & 0xFF00) >> 8)) + byteToHexString(uint8_t(iBeacon->major));
+  String minorHex = byteToHexString(uint8_t((iBeacon->minor & 0xFF00) >> 8)) + byteToHexString(uint8_t(iBeacon->minor));
 
   /* I-Beacon setup */
   uint32_t t = millis();
@@ -105,8 +105,8 @@ void BLE_HM11::setupAsIBeacon(String name, String uuid, uint16_t major, uint16_t
   setConf("IBE1" + uuidHex.substring(8, 16));
   setConf("IBE2" + uuidHex.substring(16, 24));
   setConf("IBE3" + uuidHex.substring(24, 32));
-  setConf("NAME" + name);
-  setConf("ADVI" + String(interv));
+  setConf("NAME" + iBeacon->name);
+  setConf("ADVI" + String(iBeacon->interv));
   setConf(F("ADTY3"));     // advertising type (3 = advertising only)
   setConf(F("IBEA1"));     // enable iBeacon
   setConf(F("DELO2"));     // iBeacon deploy mode (2 = broadcast only)
@@ -315,6 +315,8 @@ String BLE_HM11::sendDirectBLECommand(String cmd)
   Serial.println("");
 
   BLESerial_.flush();
+
+  response.trim();
 
   return response;
 }

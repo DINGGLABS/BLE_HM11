@@ -97,8 +97,7 @@ public:
   /* public methods */
   void begin(uint32_t baudrate = uint32_t(DEFAULT_BAUDRATE));
   void end();
-  void setupAsIBeacon(String name, String uuid, uint16_t major, uint16_t minor, advertInterval_t interv);
-  //void setupAsIBeacon(iBeaconData_t *iBeacon);  // necessaray: name, uuid, major, minor, interv
+  void setupAsIBeacon(iBeaconData_t *iBeacon);  // necessaray: name, uuid, major, minor, interv
   void setupAsIBeaconDetector();
   void detectIBeacons();
 
