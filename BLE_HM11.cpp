@@ -13,7 +13,7 @@ void BLE_HM11::begin(uint32_t baudrate)
 {
   baudrate_ = baudrate_t(baudrate);
 
-  enableBLE();
+  enable();
 
   uint32_t currentBaudrate = getBaudrate();
   DebugBLE_print(F("currentBaudrate = ")); DebugBLE_println(String(currentBaudrate));
@@ -58,7 +58,31 @@ void BLE_HM11::begin(uint32_t baudrate)
 
 void BLE_HM11::end()
 {
-  disableBLE();
+  disable();
+}
+
+void BLE_HM11::enable()
+{
+  DebugBLE_println(F("enable BLE"));
+  if (baudrate_ == 0) baudrate_ = DEFAULT_BAUDRATE;
+  setBit(*rstPort_, rstPin_);     // stop resetting
+  clearBit(*enPort_, enPin_);     // enable BLE
+  BLESerial_.begin(baudrate_);
+  while(!BLESerial_);
+  BLESerial_.flush();
+}
+
+void BLE_HM11::disable()
+{
+  DebugBLE_println(F("disable BLE"));
+  clearBit(*rstPort_, rstPin_);   // to prevent supply throug reset
+  BLESerial_.end();
+  setBit(*enPort_, enPin_);       // disable BLE
+}
+
+bool BLE_HM11::isBLEEnabled()
+{
+  return !getBit(*enPort_, enPin_);
 }
 
 void BLE_HM11::setupAsIBeacon(iBeaconData_t *iBeacon)
@@ -285,7 +309,7 @@ bool BLE_HM11::detectIBeacon(iBeaconData_t *iBeacon, uint16_t maxTimeToSearch)
 void BLE_HM11::forceRenew()
 {
   baudrate_t baudratesArray[] = {BAUDRATE0, BAUDRATE1, BAUDRATE2, BAUDRATE3, BAUDRATE4};
-  enableBLE();
+  enable();
   for (uint8_t i = 0; i < sizeof(baudratesArray)/sizeof(baudrate_t); i++)
   {
     DebugBLE_println(baudratesArray[i]);
@@ -294,34 +318,10 @@ void BLE_HM11::forceRenew()
     for (uint8_t n = 0; n < 5; n++) sendDirectBLECommand(F("AT"));
     for (uint8_t n = 0; (n < 5) && !setConf(F("RENEW")); n++) delay(DELAY_AFTER_SW_RESET_BLE);
   }
-  disableBLE();
+  disable();
 }
 
 /* Private ---------------------------------------------------- */
-void BLE_HM11::enableBLE()
-{
-  DebugBLE_println(F("enable BLE"));
-  if (baudrate_ == 0) baudrate_ = DEFAULT_BAUDRATE;
-  setBit(*rstPort_, rstPin_);     // stop resetting
-  clearBit(*enPort_, enPin_);     // enable BLE
-  BLESerial_.begin(baudrate_);
-  while(!BLESerial_);
-  BLESerial_.flush();
-}
-
-void BLE_HM11::disableBLE()
-{
-  DebugBLE_println(F("disable BLE"));
-  clearBit(*rstPort_, rstPin_);   // to prevent supply throug reset
-  BLESerial_.end();
-  setBit(*enPort_, enPin_);       // disable BLE
-}
-
-bool BLE_HM11::isBLEEnabled()
-{
-  return !getBit(*enPort_, enPin_);
-}
-
 void BLE_HM11::hwResetBLE()
 {
   clearBit(*rstPort_, rstPin_);

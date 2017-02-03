@@ -105,6 +105,9 @@ public:
   /* public methods */
   void begin(uint32_t baudrate = uint32_t(DEFAULT_BAUDRATE));
   void end();
+  void enable();
+  void disable();
+  bool isBLEEnabled();
   void setupAsIBeacon(iBeaconData_t *iBeacon);  // necessaray: name, uuid, major, minor, interv
   void setupAsIBeaconDetector();
   bool detectIBeacon(iBeaconData_t *iBeacon, uint16_t maxTimeToSearch = DEFAULT_DETECTION_TIME);  // necessary: uuid (you want to search for)
@@ -136,9 +139,6 @@ private:
   //iBeaconData_t iBeaconData_[MAX_NUMBER_IBEACONS];
 
   /* private methods */
-  void enableBLE();
-  void disableBLE();
-  bool isBLEEnabled();
   void hwResetBLE();
   void swResetBLE();
   bool setConf(String cmd);
