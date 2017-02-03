@@ -23,7 +23,8 @@
 #include <Arduino.h>
 #include <SoftwareSerial.h>
 
-/* Typedefs ----------------------------------------------------*/
+/* Defines -----------------------------------------------------*/
+#define DEBUG_BLE  //blup: define to activate Debug prints
 
 /* Macros ----------------------------------------------------- */
 /* port manipulation makros */
@@ -40,7 +41,13 @@
 #define getBit(reg, bit) ((_SFR_BYTE(reg) & _BV(bit)) != 0)
 #endif
 
-/* Defines -----------------------------------------------------*/
+#ifdef DEBUG_BLE
+  #define DebugBLE_print(...)     Serial.print(__VA_ARGS__)
+  #define DebugBLE_println(...)   Serial.println(__VA_ARGS__)
+#else
+  #define DebugBLE_print(...)
+  #define DebugBLE_println(...)
+#endif
 
 /* Class ------------------------------------------------------ */
 class BLE_HM11

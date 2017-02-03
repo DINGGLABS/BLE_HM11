@@ -16,12 +16,12 @@ void BLE_HM11::begin(uint32_t baudrate)
   enableBLE();
 
   uint32_t currentBaudrate = getBaudrate();
-  Serial.print(F("currentBaudrate = ")); Serial.println(String(currentBaudrate));
+  DebugBLE_print(F("currentBaudrate = ")); DebugBLE_println(String(currentBaudrate));
 
   if (currentBaudrate != baudrate_)
   {
     /* set baudrate */
-    Serial.println(F("set new baudrate..."));
+    DebugBLE_println(F("set new baudrate..."));
     setConf(F("RENEW"));  // restore all setup to factory default
     delay(DELAY_AFTER_SW_RESET_BLE);  //blup: a long delay is necessary
     
@@ -37,7 +37,7 @@ void BLE_HM11::begin(uint32_t baudrate)
       case BAUDRATE4: setConf(F("BAUD4")); break;
       default: //handleError("invalid baudrate!");
       {
-        Serial.println(F("invalid baudrate!"));  
+        DebugBLE_println(F("invalid baudrate!"));
         while(1);
       }
     }
@@ -50,7 +50,7 @@ void BLE_HM11::begin(uint32_t baudrate)
     /* check if setting the baudrate failed */
     if (getConf(F("BAUD")).indexOf("OK") < 0) //handleError("set baudrate failed!");
     {
-      Serial.println(F("set baudrate failed!"));
+      DebugBLE_println(F("set baudrate failed!"));
       while(1);
     }
   }
@@ -63,10 +63,10 @@ void BLE_HM11::end()
 
 void BLE_HM11::setupAsIBeacon(iBeaconData_t *iBeacon)
 {
-  Serial.println(F("setup BLE-Module as I-Beacon"));
+  DebugBLE_println(F("setup BLE-Module as I-Beacon"));
 
   /* control if given parameters are valid */
-  if ((iBeacon->name).length() > 12) {Serial.println(F("name ist too long!")); return;}
+  if ((iBeacon->name).length() > 12) {DebugBLE_println(F("name ist too long!")); return;}
   bool uuidValid = true;
   if ((iBeacon->uuid).length() != 16) uuidValid = false;
   for (uint8_t n = 0; n < 16; n++)
@@ -79,12 +79,12 @@ void BLE_HM11::setupAsIBeacon(iBeaconData_t *iBeacon)
   }
   if (!uuidValid)
   {
-    Serial.println(F("The UUID has to consist of 16 numbers (1... 9)!"));
+    DebugBLE_println(F("The UUID has to consist of 16 numbers (1... 9)!"));
     return;
   }
-  if (iBeacon->major == 0) {Serial.println(F("major can not be 0!")); return;}
-  if (iBeacon->minor == 0) {Serial.println(F("minor can not be 0!")); return;}
-  if ((iBeacon->interv == 0) || (iBeacon->interv > INTERV_1285MS)) {Serial.println(F("unallowed interval!")); return;}
+  if (iBeacon->major == 0) {DebugBLE_println(F("major can not be 0!")); return;}
+  if (iBeacon->minor == 0) {DebugBLE_println(F("minor can not be 0!")); return;}
+  if ((iBeacon->interv == 0) || (iBeacon->interv > INTERV_1285MS)) {DebugBLE_println(F("unallowed interval!")); return;}
 
   /* convert given parameters to hex values */
   String uuidHex = "";
@@ -113,8 +113,8 @@ void BLE_HM11::setupAsIBeacon(iBeaconData_t *iBeacon)
   setConf(F("PWRM1"));     // auto sleep OFF
   //setConf("PWRM0");        // auto sleep ON
   swResetBLE();
-  Serial.print(F("dt setup =\t")); Serial.print(String(millis() - t)); Serial.println(F("ms"));
-  Serial.println("");
+  DebugBLE_print(F("dt setup =\t")); DebugBLE_print(String(millis() - t)); DebugBLE_println(F("ms"));
+  DebugBLE_println("");
 
   /* show BLT address */
   getConf("ADDR");
@@ -122,7 +122,7 @@ void BLE_HM11::setupAsIBeacon(iBeaconData_t *iBeacon)
 
 void BLE_HM11::setupAsIBeaconDetector()
 {
-  Serial.println(F("setup BLE-Module as I-Beacon detector"));
+  DebugBLE_println(F("setup BLE-Module as I-Beacon detector"));
 
   for (byte n = 0; n < NUMBER_DEVICES_TO_CONSIDER; n++) lastMatchDeviceAddresses_[n] = "";  // clear found device history
   timeOfLastMatch_ = millis();
@@ -135,7 +135,7 @@ void BLE_HM11::setupAsIBeaconDetector()
 
 void BLE_HM11::detectIBeacons()
 {
-  Serial.println(F("setup BLE-Module as I-Beacon detector"));
+  DebugBLE_println(F("setup BLE-Module as I-Beacon detector"));
 
   for (byte n = 0; n < NUMBER_DEVICES_TO_CONSIDER; n++) lastMatchDeviceAddresses_[n] = "";  // clear found device history
   timeOfLastMatch_ = millis();
@@ -154,7 +154,7 @@ void BLE_HM11::detectIBeacons()
 
 // void wakeUpBLE()
 // {
-//  Serial.println(F("wakeing up BLE..."));
+//  DebugBLE_println(F("wakeing up BLE..."));
 
 //  /* wake up -> send a long random string */
 //  String wakeUpStr = "";
@@ -176,7 +176,7 @@ void BLE_HM11::forceRenew()
   enableBLE();
   for (uint8_t i = 0; i < sizeof(baudratesArray)/sizeof(baudrate_t); i++)
   {
-    Serial.println(baudratesArray[i]);
+    DebugBLE_println(baudratesArray[i]);
     BLESerial_.begin(baudratesArray[i]);
     while(!BLESerial_);
     for (uint8_t n = 0; n < 5; n++) sendDirectBLECommand(F("AT"));
@@ -188,7 +188,7 @@ void BLE_HM11::forceRenew()
 /* Private ---------------------------------------------------- */
 void BLE_HM11::enableBLE()
 {
-  Serial.println(F("enable BLE"));
+  DebugBLE_println(F("enable BLE"));
   if (baudrate_ == 0) baudrate_ = DEFAULT_BAUDRATE;  //blup
   setBit(*rstPort_, rstPin_);     // stop resetting
   clearBit(*enPort_, enPin_);     // enable BLE
@@ -200,7 +200,7 @@ void BLE_HM11::enableBLE()
 
 void BLE_HM11::disableBLE()
 {
-  Serial.println(F("disable BLE"));
+  DebugBLE_println(F("disable BLE"));
   clearBit(*rstPort_, rstPin_);   // to prevent supply throug reset
   BLESerial_.end();
   setBit(*enPort_, enPin_);       // disable BLE
@@ -238,7 +238,7 @@ String BLE_HM11::getConf(String cmd)
 
 BLE_HM11::baudrate_t BLE_HM11::getBaudrate()
 {
-  Serial.println(F("getBaudrate..."));
+  DebugBLE_println(F("getBaudrate..."));
 
   baudrate_t baudratesArray[] = {BAUDRATE0, BAUDRATE1, BAUDRATE2, BAUDRATE3, BAUDRATE4};
   
@@ -246,7 +246,7 @@ BLE_HM11::baudrate_t BLE_HM11::getBaudrate()
   String response = "";
   for (i = 0; (response.indexOf("OK") < 0) && (i < sizeof(baudratesArray)/sizeof(baudrate_t)); i++)
   {
-    Serial.println(baudratesArray[i]);
+    DebugBLE_println(baudratesArray[i]);
     BLESerial_.begin(baudratesArray[i]);
     while(!BLESerial_);
     for (uint8_t n = 0; (n < 5) && (response.indexOf("OK") < 0); n++)
@@ -259,7 +259,7 @@ BLE_HM11::baudrate_t BLE_HM11::getBaudrate()
   if (i >= sizeof(baudratesArray)/sizeof(baudrate_t))
   {
     //handleError(F("determining the current baudrate of the BLE failed!"));
-    Serial.println(F("determining the current baudrate of the BLE failed!"));
+    DebugBLE_println(F("determining the current baudrate of the BLE failed!"));
     while(1);
   }
     
@@ -273,7 +273,7 @@ String BLE_HM11::sendDirectBLECommand(String cmd)
   response.reserve(DEFAULT_RESPONSE_LENGTH);
 
   /* send command */
-  Serial.print(F("send:\t\t")); Serial.println(cmd);
+  DebugBLE_print(F("send:\t\t")); DebugBLE_println(cmd);
   BLESerial_.print(cmd);
 
   /* get response */
@@ -283,23 +283,21 @@ String BLE_HM11::sendDirectBLECommand(String cmd)
     if (BLESerial_.available())
     {
       response += char(BLESerial_.read());
-
-      /* special delay: */
-      Serial.print(F("got:\t\t")); Serial.println(response);
+      DebugBLE_print(F("got:\t\t")); DebugBLE_println(response);
     }
 
     if ((millis() - startMillis_BLE) >= COMMAND_TIMEOUT_TIME)
     {
       failed = true;
       response = "error";
-      Serial.println(F("reading response timeouted!"));
+      DebugBLE_println(F("reading response timeouted!"));
     }
 
 //    if (response.length() > (MAX_NUMBER_IBEACONS * NUMBER_CHARS_PER_DEVICE))
 //    {
 //      failed = true;
 //      response = "error";
-//      Serial.println(F("reading response exceeded the defined memory space!"));
+//      DebugBLE_println(F("reading response exceeded the defined memory space!"));
 //    }
   }
 
@@ -309,10 +307,10 @@ String BLE_HM11::sendDirectBLECommand(String cmd)
 //  }
 
   /* print response */
-  Serial.print(F("received:\t")); Serial.println(response);
-  Serial.print(F("dt =\t\t")); Serial.print(String(millis() - startMillis_BLE)); Serial.println(F("ms"));
-  //Serial.print(F("dt =\t\t")); Serial.print(String(micros() - startMicros_BLE)); Serial.println(F("us"));
-  Serial.println("");
+  DebugBLE_print(F("received:\t")); DebugBLE_println(response);
+  DebugBLE_print(F("dt =\t\t")); DebugBLE_print(String(millis() - startMillis_BLE)); DebugBLE_println(F("ms"));
+  //DebugBLE_print(F("dt =\t\t")); DebugBLE_print(String(micros() - startMicros_BLE)); DebugBLE_println(F("us"));
+  DebugBLE_println("");
 
   BLESerial_.flush();
 
@@ -368,33 +366,33 @@ char BLE_HM11::nibbleToHexCharacter(uint8_t nibble)
 //     String data = "";
 //     data.reserve(MAX_NUMBER_IBEACONS*NUMBER_CHARS_PER_DEVICE+DEFAULT_RESPONSE_LENGTH);
 
-// //    data = Serial.readStringUntil('\n');  // "OK+DISC:..."
+// //    data = DebugBLE_readStringUntil('\n');  // "OK+DISC:..."
 //     boolean timeout = false;
 //     unsigned long lastDataFound = millis();
 //     while(((data.length() < NUMBER_CHARS_PER_DEVICE)    // wait for at least one device or...
-//             || (Serial.available() > 0)                 // stay as long as data is available or...
+//             || (DebugBLE_available() > 0)                 // stay as long as data is available or...
 //             || ((millis() - lastDataFound) < DETECTION_TIME_OFFSET))            // wait some defined time (discovered empirically) before leaving
 //             && (data.length() < (MAX_NUMBER_IBEACONS*NUMBER_CHARS_PER_DEVICE))  // leave if max number of iBeacons have been found
 //             && !timeout)                                // leave if timeouted
 //     {
-//       if (Serial.available() > 0)
+//       if (DebugBLE_available() > 0)
 //       {
-//         data += String(char(Serial.read()));
+//         data += String(char(DebugBLE_read()));
 //         lastDataFound = millis();
 //       }
 
 //       if ((millis() - startMillis_BLE_total) >= MAX_DETECTION_TIME)
 //       {
 //         timeout = true;
-//         Serial.println(F("timeouted!"));
+//         DebugBLE_println(F("timeouted!"));
 //       }
 //     }
-//     //Serial.print(F("dt data =\t"));Serial.print((millis() - startMillis_BLE_total)); Serial.println(F("ms"));
-//     //Serial.print(F("data =\t\t")); Serial.println(data);
+//     //DebugBLE_print(F("dt data =\t"));DebugBLE_print((millis() - startMillis_BLE_total)); DebugBLE_println(F("ms"));
+//     //DebugBLE_print(F("data =\t\t")); DebugBLE_println(data);
 
 //     /* HW reset to prevent the "AT+DISCE" */
 //     hwResetBLE();
-//     //while(data.indexOf("OK+DISCE") < 0){if (Serial.available()) data += String(char(Serial.read()));}
+//     //while(data.indexOf("OK+DISCE") < 0){if (DebugBLE_available()) data += String(char(DebugBLE_read()));}
     
 //     /* get total device count */
 //     unsigned int j = 0;
@@ -403,9 +401,9 @@ char BLE_HM11::nibbleToHexCharacter(uint8_t nibble)
 //     {
 //       j = data.indexOf("OK+DISC:", j) + DEFAULT_RESPONSE_LENGTH;
 //     }
-//     Serial.print(deviceCounter); Serial.println(F(" device(s) found"));
-//     //Serial.print(F("dt total =\t")); Serial.print((millis() - startMillis_BLE_total)); Serial.println(F("ms"));
-//     Serial.print(F("data =\t\t")); Serial.println(data);
+//     DebugBLE_print(deviceCounter); DebugBLE_println(F(" device(s) found"));
+//     //DebugBLE_print(F("dt total =\t")); DebugBLE_print((millis() - startMillis_BLE_total)); DebugBLE_println(F("ms"));
+//     DebugBLE_print(F("data =\t\t")); DebugBLE_println(data);
     
 //     if (data.indexOf(KEY_UUID) > 0)
 //     {
@@ -415,7 +413,7 @@ char BLE_HM11::nibbleToHexCharacter(uint8_t nibble)
 //       currentMatchDeviceNr = 0;
 //       iBeaconData[0].deviceAddress = data.substring(data.indexOf(KEY_UUID)+45, data.indexOf(KEY_UUID)+57);
 //       //iBeaconData[0].deviceAddress = data.substring(data.indexOf(KEY_MAJOR_ID)+12, data.indexOf(KEY_MAJOR_ID)+24);
-//       //Serial.println(iBeaconData[0].deviceAddress);
+//       //DebugBLE_println(iBeaconData[0].deviceAddress);
 //     }
     
 // //    /* process data -> extract the devices from the data */
@@ -426,9 +424,9 @@ char BLE_HM11::nibbleToHexCharacter(uint8_t nibble)
 // //      unsigned int deviceIndex = deviceCounter * NUMBER_CHARS_PER_DEVICE;
 // //      deviceString[deviceCounter].reserve(NUMBER_CHARS_PER_DEVICE);  // reserve memory to prevent fragmentation
 // //      deviceString[deviceCounter] = data.substring(deviceIndex, deviceIndex + NUMBER_CHARS_PER_DEVICE);
-// //      Serial.print(F("device_")); Serial.print(deviceCounter); Serial.print(F(" =\t")); Serial.println(deviceString[deviceCounter]);
+// //      DebugBLE_print(F("device_")); DebugBLE_print(deviceCounter); DebugBLE_print(F(" =\t")); DebugBLE_println(deviceString[deviceCounter]);
 // //    }
-// //    Serial.println("");
+// //    DebugBLE_println("");
 // //
 // //    if (deviceString[0].length() == NUMBER_CHARS_PER_DEVICE)
 // //    {
@@ -436,30 +434,30 @@ char BLE_HM11::nibbleToHexCharacter(uint8_t nibble)
 // //      for (byte n = 0; n < deviceCounter; n++)
 // //      {
 // //        iBeaconData[n].accessAddress = deviceString[n].substring(8, 16);
-// //        //Serial.print(F("accessAdr_")); Serial.print(String(n)); Serial.print(F(" =\t")); Serial.println(iBeaconData[n].accessAddress);
+// //        //DebugBLE_print(F("accessAdr_")); DebugBLE_print(String(n)); DebugBLE_print(F(" =\t")); DebugBLE_println(iBeaconData[n].accessAddress);
 // //        iBeaconData[n].uuid = deviceString[n].substring(17, 49);
-// //        //Serial.print(F("UUID_")); Serial.print(String(n)); Serial.print(F(" =\t")); Serial.println(iBeaconData[n].uuid);
+// //        //DebugBLE_print(F("UUID_")); DebugBLE_print(String(n)); DebugBLE_print(F(" =\t")); DebugBLE_println(iBeaconData[n].uuid);
 // //        iBeaconData[n].major = deviceString[n].substring(50, 54);
-// //        Serial.print(F("Major_")); Serial.print(n); Serial.print(F(" =\t")); Serial.println(iBeaconData[n].major);
+// //        DebugBLE_print(F("Major_")); DebugBLE_print(n); DebugBLE_print(F(" =\t")); DebugBLE_println(iBeaconData[n].major);
 // //        iBeaconData[n].minor = deviceString[n].substring(54, 58);
-// //        //Serial.print(F("Minor_")); Serial.print(n); Serial.print(F(" =\t")); Serial.println(iBeaconData[n].minor);
+// //        //DebugBLE_print(F("Minor_")); DebugBLE_print(n); DebugBLE_print(F(" =\t")); DebugBLE_println(iBeaconData[n].minor);
 // //        iBeaconData[n].deviceAddress = deviceString[n].substring(61, 73);
-// //        Serial.print(F("deviceAdr_")); Serial.print(n); Serial.print(F(" =\t")); Serial.println(iBeaconData[n].deviceAddress);
+// //        DebugBLE_print(F("deviceAdr_")); DebugBLE_print(n); DebugBLE_print(F(" =\t")); DebugBLE_println(iBeaconData[n].deviceAddress);
 // //        iBeaconData[n].txPower = deviceString[n].substring(74, 78).toInt();
-// //        Serial.print(F("TxPower_")); Serial.print(n); Serial.print(F(" =\t")); Serial.println(iBeaconData[n].txPower);
-// //        Serial.println("");
+// //        DebugBLE_print(F("TxPower_")); DebugBLE_print(n); DebugBLE_print(F(" =\t")); DebugBLE_println(iBeaconData[n].txPower);
+// //        DebugBLE_println("");
 // //        
 // //        /* handle match */
 // //        if (iBeaconData[currentMatchDeviceNr].major == String(KEY_MAJOR_ID))
 // //        {
 // //          currentMatchDeviceNr = n;
-// //          Serial.print(F("Device ")); Serial.print(currentMatchDeviceNr); Serial.println(F(" mached!"));
+// //          DebugBLE_print(F("Device ")); DebugBLE_print(currentMatchDeviceNr); DebugBLE_println(F(" mached!"));
 // //          match = true;
 // //          break;
 // //        }
 // //      }
 // //    }
-//     Serial.println("");
+//     DebugBLE_println("");
 //   }
 
 //   return match;
