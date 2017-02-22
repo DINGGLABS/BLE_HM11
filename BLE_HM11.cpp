@@ -139,13 +139,28 @@ void BLE_HM11::setupAsIBeacon(iBeaconData_t *iBeacon)
   setConf(F("IBEA1"));     // enable iBeacon
   setConf(F("DELO2"));     // iBeacon deploy mode (2 = broadcast only)
   setConf(F("PWRM1"));     // auto sleep OFF
-  //setConf("PWRM0");        // auto sleep ON
+  //setConf("PWRM0");        // auto sleep ON   //blup: this should be used -> to send new AT-commands implement wakeUpBLE
   swResetBLE();
-  DebugBLE_print(F("dt setup =\t")); DebugBLE_print(String(millis() - t)); DebugBLE_println(F("ms"));
-  DebugBLE_println("");
 
   /* show BLT address */
   getConf("ADDR");
+
+  DebugBLE_print(F("dt setup =\t")); DebugBLE_print(String(millis() - t)); DebugBLE_println(F("ms"));
+  DebugBLE_println("");
+
+  // //Debug:
+  // getConf(F("MARJ"));
+  // getConf(F("MINO"));
+  // getConf(F("IBE0"));
+  // getConf(F("IBE1"));
+  // getConf(F("IBE2"));
+  // getConf(F("IBE3"));
+  // getConf(F("NAME"));
+  // getConf(F("ADVI"));
+  // getConf(F("ADTY"));     // advertising type (3 = advertising only)
+  // getConf(F("IBEA"));     // enable iBeacon
+  // getConf(F("DELO"));     // iBeacon deploy mode (2 = broadcast only)
+  // getConf(F("PWRM"));     // auto sleep OFF
 }
 
 void BLE_HM11::setupAsIBeaconDetector()
