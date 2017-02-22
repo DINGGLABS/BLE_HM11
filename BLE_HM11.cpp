@@ -11,52 +11,9 @@
 /* Public ----------------------------------------------------- */
 bool BLE_HM11::begin(uint32_t baudrate)
 {
-  bool successful = true;
-
   baudrate_ = baudrate_t(baudrate);
-
   enable();
-
-  uint32_t currentBaudrate = getBaudrate();
-  DebugBLE_print(F("currentBaudrate = ")); DebugBLE_println(String(currentBaudrate));
-
-  if ((currentBaudrate != 0) && (currentBaudrate != baudrate_))
-  {
-    /* set baudrate */
-    DebugBLE_println(F("set new baudrate..."));
-    setConf(F("RENEW"));              // restore all setup to factory default
-    delay(DELAY_AFTER_SW_RESET_BLE);  // a long delay is necessary
-    
-    BLESerial_.begin(DEFAULT_BAUDRATE);
-    while(!BLESerial_);
-
-    switch(baudrate_)
-    {
-      case BAUDRATE0: setConf(F("BAUD0")); break;
-      case BAUDRATE1: setConf(F("BAUD1")); break;
-      case BAUDRATE2: setConf(F("BAUD2")); break;
-      case BAUDRATE3: setConf(F("BAUD3")); break;
-      case BAUDRATE4: setConf(F("BAUD4")); break;
-      default: //handleError("invalid baudrate!");
-      {
-        DebugBLE_println(F("invalid baudrate!"));
-        successful = false;//while(1);
-      }
-    }
-    
-    swResetBLE();
-    
-    BLESerial_.begin(baudrate_);
-    while(!BLESerial_);
-    
-    /* check if setting the baudrate failed */
-    if (getConf(F("BAUD")).indexOf("OK") < 0) //handleError("set baudrate failed!");
-    {
-      DebugBLE_println(F("set baudrate failed!"));
-      successful = false;//while(1);
-    }
-  }
-  return successful;
+  return setBaudrate();
 }
 
 void BLE_HM11::end()
@@ -126,6 +83,7 @@ void BLE_HM11::setupAsIBeacon(iBeaconData_t *iBeacon)
 
   /* I-Beacon setup */
   uint32_t t = millis();
+  renewBLE();    // necessary!
   swResetBLE();
   setConf("MARJ0x" + majorHex);
   setConf("MINO0x" + minorHex);
@@ -145,7 +103,7 @@ void BLE_HM11::setupAsIBeacon(iBeaconData_t *iBeacon)
   /* show BLT address */
   getConf("ADDR");
 
-  DebugBLE_print(F("dt setup =\t")); DebugBLE_print(String(millis() - t)); DebugBLE_println(F("ms"));
+  DebugBLE_print(F("dt setup BLE =\t")); DebugBLE_print(String(millis() - t)); DebugBLE_println(F("ms"));
   DebugBLE_println("");
 
   // //Debug:
@@ -352,7 +310,14 @@ void BLE_HM11::hwResetBLE()
 void BLE_HM11::swResetBLE()
 {
   setConf(F("RESET"));
-  delay(DELAY_AFTER_SW_RESET_BLE);
+  delay(DELAY_AFTER_SW_RESET_BLE);  // a long delay is necessary
+}
+
+void BLE_HM11::renewBLE()
+{
+  setConf(F("RENEW"));              // restore all setup to factory default
+  delay(DELAY_AFTER_SW_RESET_BLE);  // a long delay is necessary
+  setBaudrate();
 }
 
 bool BLE_HM11::setConf(String cmd)
@@ -364,6 +329,58 @@ bool BLE_HM11::setConf(String cmd)
 String BLE_HM11::getConf(String cmd)
 {
   return sendDirectBLECommand("AT+" + cmd + "?");
+}
+
+bool BLE_HM11::setBaudrate(baudrate_t baudrate)
+{
+  baudrate_ = baudrate;
+  setBaudrate();
+}
+
+bool BLE_HM11::setBaudrate()
+{
+  bool successful = true;
+  uint32_t currentBaudrate = getBaudrate();
+  DebugBLE_print(F("currentBaudrate = ")); DebugBLE_println(String(currentBaudrate));
+  DebugBLE_println("");
+
+  if ((currentBaudrate != 0) && (currentBaudrate != baudrate_))
+  {
+    /* set baudrate */
+    DebugBLE_println(F("set new baudrate..."));
+    if (currentBaudrate != BAUDRATE0) renewBLE();
+
+    BLESerial_.begin(DEFAULT_BAUDRATE);
+    while(!BLESerial_);
+
+    switch(baudrate_)
+    {
+      case BAUDRATE0: setConf(F("BAUD0")); break;
+      case BAUDRATE1: setConf(F("BAUD1")); break;
+      case BAUDRATE2: setConf(F("BAUD2")); break;
+      case BAUDRATE3: setConf(F("BAUD3")); break;
+      case BAUDRATE4: setConf(F("BAUD4")); break;
+      default: //handleError("invalid baudrate!");
+      {
+        DebugBLE_println(F("invalid baudrate!"));
+        successful = false;//while(1);
+      }
+    }
+
+    swResetBLE();
+
+    BLESerial_.begin(baudrate_);
+    while(!BLESerial_);
+
+    /* check if setting the baudrate failed */
+    if (getConf(F("BAUD")).indexOf("OK") < 0) //handleError("set baudrate failed!");
+    {
+      DebugBLE_println(F("set baudrate failed!"));
+      successful = false;//while(1);
+    }
+  }
+
+  return successful;
 }
 
 BLE_HM11::baudrate_t BLE_HM11::getBaudrate()

@@ -141,7 +141,10 @@ private:
   /* private methods */
   void hwResetBLE();
   void swResetBLE();
+  void renewBLE();
   bool setConf(String cmd);
+  bool setBaudrate(baudrate_t baudrate);
+  bool setBaudrate();
   String getConf(String cmd);
   baudrate_t getBaudrate();
   String sendDirectBLECommand(String cmd);
