@@ -24,7 +24,7 @@
 #include <SoftwareSerial.h>
 
 /* Defines -----------------------------------------------------*/
-//#define DEBUG_BLE  //blup: define to activate Debug prints
+#define DEBUG_BLE  //blup: define to activate Debug prints
 
 /* Macros ----------------------------------------------------- */
 /* port manipulation makros */
@@ -103,7 +103,7 @@ public:
   } iBeaconData_t;
 
   /* public methods */
-  void begin(uint32_t baudrate = uint32_t(DEFAULT_BAUDRATE));
+  bool begin(uint32_t baudrate = uint32_t(DEFAULT_BAUDRATE));
   void end();
   void enable();
   void disable();

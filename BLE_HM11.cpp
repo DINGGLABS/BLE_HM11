@@ -9,8 +9,10 @@
 #include "BLE_HM11.h"
 
 /* Public ----------------------------------------------------- */
-void BLE_HM11::begin(uint32_t baudrate)
+bool BLE_HM11::begin(uint32_t baudrate)
 {
+  bool successful = true;
+
   baudrate_ = baudrate_t(baudrate);
 
   enable();
@@ -18,7 +20,7 @@ void BLE_HM11::begin(uint32_t baudrate)
   uint32_t currentBaudrate = getBaudrate();
   DebugBLE_print(F("currentBaudrate = ")); DebugBLE_println(String(currentBaudrate));
 
-  if (currentBaudrate != baudrate_)
+  if ((currentBaudrate != 0) && (currentBaudrate != baudrate_))
   {
     /* set baudrate */
     DebugBLE_println(F("set new baudrate..."));
@@ -38,7 +40,7 @@ void BLE_HM11::begin(uint32_t baudrate)
       default: //handleError("invalid baudrate!");
       {
         DebugBLE_println(F("invalid baudrate!"));
-        while(1);
+        successful = false;//while(1);
       }
     }
     
@@ -51,9 +53,10 @@ void BLE_HM11::begin(uint32_t baudrate)
     if (getConf(F("BAUD")).indexOf("OK") < 0) //handleError("set baudrate failed!");
     {
       DebugBLE_println(F("set baudrate failed!"));
-      while(1);
+      successful = false;//while(1);
     }
   }
+  return successful;
 }
 
 void BLE_HM11::end()
@@ -70,6 +73,7 @@ void BLE_HM11::enable()
   BLESerial_.begin(baudrate_);
   while(!BLESerial_);
   BLESerial_.flush();
+  hwResetBLE();
 }
 
 void BLE_HM11::disable()
@@ -108,7 +112,7 @@ void BLE_HM11::setupAsIBeacon(iBeaconData_t *iBeacon)
   }
   if (iBeacon->major == 0) {DebugBLE_println(F("major can not be 0!")); return;}
   if (iBeacon->minor == 0) {DebugBLE_println(F("minor can not be 0!")); return;}
-  if ((iBeacon->interv == 0) || (iBeacon->interv > INTERV_1285MS)) {DebugBLE_println(F("unallowed interval!")); return;}
+  if (iBeacon->interv > INTERV_1285MS) {DebugBLE_println(F("unallowed interval!")); return;}
 
   /* convert given parameters to hex values */
   String uuidHex = "";
@@ -371,7 +375,7 @@ BLE_HM11::baudrate_t BLE_HM11::getBaudrate()
   {
     //handleError(F("determining the current baudrate of the BLE failed!"));
     DebugBLE_println(F("determining the current baudrate of the BLE failed!"));
-    while(1);
+    baudratesArray[i-1] = baudrate_t(0);//while(1);
   }
     
   return  baudratesArray[i-1];
@@ -383,13 +387,17 @@ String BLE_HM11::sendDirectBLECommand(String cmd)
   String response = "";
   response.reserve(DEFAULT_RESPONSE_LENGTH);
 
+  /* wait for more data if the cmd has a '+' */
+  bool waitForMore = false;
+  if(cmd.indexOf("+") >= 0) waitForMore = true;
+
   /* send command */
   DebugBLE_print(F("send:\t\t")); DebugBLE_println(cmd);
   BLESerial_.print(cmd);
 
   /* get response */
   uint32_t startMillis_BLE = millis();
-  while ((response.indexOf("OK") < 0 || BLESerial_.available()) && !failed)
+  while ((response.indexOf("OK") < 0 || BLESerial_.available() || waitForMore) && !failed)
   {
     if (BLESerial_.available())
     {
@@ -402,6 +410,9 @@ String BLE_HM11::sendDirectBLECommand(String cmd)
         delayMicroseconds(100);
       #endif
     }
+
+    /* stop waiting for more data if we got a '+' */
+    if (waitForMore && response.indexOf("+") >= 0) waitForMore = false;
 
     if ((millis() - startMillis_BLE) >= COMMAND_TIMEOUT_TIME)
     {
