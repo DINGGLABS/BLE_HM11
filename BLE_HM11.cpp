@@ -29,7 +29,7 @@ void BLE_HM11::enable()
   clearBit(*enPort_, enPin_);     // enable BLE
   BLESerial_.begin(baudrate_);
   while(!BLESerial_);
-  BLESerial_.flush();
+  while(BLESerial_.available()) (void)BLESerial_.read();  // empty tx-buffer
   hwResetBLE();
 }
 
@@ -50,9 +50,10 @@ void BLE_HM11::setupAsIBeacon(iBeaconData_t *iBeacon)
 {
   DebugBLE_println(F("setup BLE-Module as I-Beacon"));
 
+  bool uuidValid = true;
+
   /* control if given parameters are valid */
   if ((iBeacon->name).length() > 12) {DebugBLE_println(F("name ist too long!")); return;}
-  bool uuidValid = true;
   if ((iBeacon->uuid).length() != 16) uuidValid = false;
   for (uint8_t n = 0; n < 16; n++)
   {
@@ -67,8 +68,8 @@ void BLE_HM11::setupAsIBeacon(iBeaconData_t *iBeacon)
     DebugBLE_println(F("The UUID has to consist of 16 numbers (1... 9)!"));
     return;
   }
-  if (iBeacon->major == 0) {DebugBLE_println(F("major can not be 0!")); return;}
-  if (iBeacon->minor == 0) {DebugBLE_println(F("minor can not be 0!")); return;}
+  if (iBeacon->marjor == 0 || iBeacon->marjor == 0xFFFF) {DebugBLE_println(F("marjor have to be between 0 and 65'534!")); return;}
+  if (iBeacon->minor == 0 || iBeacon->minor == 0xFFFF) {DebugBLE_println(F("minor have to be between 0 and 65'534!")); return;}
   if (iBeacon->interv > INTERV_1285MS) {DebugBLE_println(F("unallowed interval!")); return;}
 
   /* convert given parameters to hex values */
@@ -78,14 +79,14 @@ void BLE_HM11::setupAsIBeacon(iBeaconData_t *iBeacon)
   {
     uuidHex.concat(byteToHexString(uint8_t((iBeacon->uuid)[n] - '0')));
   }
-  String majorHex = byteToHexString(uint8_t((iBeacon->major & 0xFF00) >> 8)) + byteToHexString(uint8_t(iBeacon->major));
+  String marjorHex = byteToHexString(uint8_t((iBeacon->marjor & 0xFF00) >> 8)) + byteToHexString(uint8_t(iBeacon->marjor));
   String minorHex = byteToHexString(uint8_t((iBeacon->minor & 0xFF00) >> 8)) + byteToHexString(uint8_t(iBeacon->minor));
 
   /* I-Beacon setup */
   uint32_t t = millis();
   renewBLE();    // necessary!
   swResetBLE();
-  setConf("MARJ0x" + majorHex);
+  setConf("MARJ0x" + marjorHex);
   setConf("MINO0x" + minorHex);
   setConf("IBE0" + uuidHex.substring(0, 8));
   setConf("IBE1" + uuidHex.substring(8, 16));
@@ -149,8 +150,6 @@ bool BLE_HM11::detectIBeacon(iBeaconData_t *iBeacon, uint16_t maxTimeToSearch)
     bool timeout = false;
     uint32_t startMillis_BLE_total = millis();
     String data = "";
-    String uuidHex = "";
-    uuidHex.reserve(32);
     iBeacon->accessAddress.reserve(8);
     iBeacon->deviceAddress.reserve(12);
     DebugBLE_print(F("getFreeRAM() = ")); DebugBLE_println(getFreeRAM());
@@ -187,14 +186,24 @@ bool BLE_HM11::detectIBeacon(iBeaconData_t *iBeacon, uint16_t maxTimeToSearch)
     DebugBLE_print(deviceCounter); DebugBLE_println(F(" device(s) found"));
 
     /* convert given uuid to hex */
+    String uuidHex = "";
+    uuidHex.reserve(32);
+    DebugBLE_print(F("iBeacon->uuid = ")); DebugBLE_println(iBeacon->uuid);
     for (uint8_t n = 0; n < 16; n++)
     {
       uuidHex.concat(byteToHexString(uint8_t((iBeacon->uuid)[n] - '0')));
     }
     DebugBLE_print("uuidHex = "); DebugBLE_println(uuidHex);
 
+    /* convert given marjor and minor to hex */
+    String marjorHex = byteToHexString(uint8_t((iBeacon->marjor & 0xFF00) >> 8)) + byteToHexString(uint8_t(iBeacon->marjor));
+    DebugBLE_print("marjorHex = "); DebugBLE_println(marjorHex);
+    String minorHex = byteToHexString(uint8_t((iBeacon->minor & 0xFF00) >> 8)) + byteToHexString(uint8_t(iBeacon->minor));
+    DebugBLE_print("minorHex = "); DebugBLE_println(minorHex);
+
     /* check for a UUID match */
-    if (data.indexOf(uuidHex) >= 0)
+    uint16_t indexUUID = data.indexOf(uuidHex);
+    if ((indexUUID >= 0) && (data.indexOf(marjorHex, indexUUID) >= 0) && (data.indexOf(minorHex, indexUUID) >= 0))
     {
       DebugBLE_println(F("match!"));
       match = true;
@@ -203,8 +212,8 @@ bool BLE_HM11::detectIBeacon(iBeaconData_t *iBeacon, uint16_t maxTimeToSearch)
       uint16_t indexMatch = data.indexOf(uuidHex) - 9;
       iBeacon->accessAddress = data.substring(indexMatch, indexMatch+8);
       iBeacon->deviceAddress = data.substring(indexMatch+53, indexMatch+65);
-      iBeacon->major         = hexStringToByte(data.substring(indexMatch+42, indexMatch+44)) << 8;
-      iBeacon->major        |= hexStringToByte(data.substring(indexMatch+44, indexMatch+46));
+      iBeacon->marjor        = hexStringToByte(data.substring(indexMatch+42, indexMatch+44)) << 8;
+      iBeacon->marjor       |= hexStringToByte(data.substring(indexMatch+44, indexMatch+46));
       iBeacon->minor         = hexStringToByte(data.substring(indexMatch+46, indexMatch+48)) << 8;
       iBeacon->minor        |= hexStringToByte(data.substring(indexMatch+48, indexMatch+50));
       iBeacon->txPower       = hexStringToByte(data.substring(indexMatch+67, indexMatch+68)) << 8;
@@ -241,8 +250,8 @@ bool BLE_HM11::detectIBeacon(iBeaconData_t *iBeacon, uint16_t maxTimeToSearch)
    //     //DebugBLE_print(F("accessAdr_")); DebugBLE_print(String(n)); DebugBLE_print(F(" =\t")); DebugBLE_println(iBeaconData[n].accessAddress);
    //     iBeaconData[n].uuid = deviceString[n].substring(17, 49);
    //     //DebugBLE_print(F("UUID_")); DebugBLE_print(String(n)); DebugBLE_print(F(" =\t")); DebugBLE_println(iBeaconData[n].uuid);
-   //     iBeaconData[n].major = deviceString[n].substring(50, 54);
-   //     DebugBLE_print(F("Major_")); DebugBLE_print(n); DebugBLE_print(F(" =\t")); DebugBLE_println(iBeaconData[n].major);
+   //     iBeaconData[n].marjor = deviceString[n].substring(50, 54);
+   //     DebugBLE_print(F("Major_")); DebugBLE_print(n); DebugBLE_print(F(" =\t")); DebugBLE_println(iBeaconData[n].marjor);
    //     iBeaconData[n].minor = deviceString[n].substring(54, 58);
    //     //DebugBLE_print(F("Minor_")); DebugBLE_print(n); DebugBLE_print(F(" =\t")); DebugBLE_println(iBeaconData[n].minor);
    //     iBeaconData[n].deviceAddress = deviceString[n].substring(61, 73);
@@ -252,7 +261,7 @@ bool BLE_HM11::detectIBeacon(iBeaconData_t *iBeacon, uint16_t maxTimeToSearch)
    //     DebugBLE_println("");
 
    //     /* handle match */
-   //     if (iBeaconData[currentMatchDeviceNr].major == String(KEY_MAJOR_ID))
+   //     if (iBeaconData[currentMatchDeviceNr].marjor == String(KEY_MAJOR_ID))
    //     {
    //       currentMatchDeviceNr = n;
    //       DebugBLE_print(F("Device ")); DebugBLE_print(currentMatchDeviceNr); DebugBLE_println(F(" mached!"));
@@ -418,15 +427,12 @@ String BLE_HM11::sendDirectBLECommand(String cmd)
   bool failed = false;
   String response = "";
   response.reserve(DEFAULT_RESPONSE_LENGTH);
-
   /* wait for more data if the cmd has a '+' */
   bool waitForMore = false;
   if(cmd.indexOf("+") >= 0) waitForMore = true;
-
   /* send command */
   DebugBLE_print(F("send:\t\t")); DebugBLE_println(cmd);
   BLESerial_.print(cmd);
-
   /* get response */
   uint32_t startMillis_BLE = millis();
   while ((response.indexOf("OK") < 0 || BLESerial_.available() || waitForMore) && !failed)

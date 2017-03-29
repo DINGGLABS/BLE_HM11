@@ -24,7 +24,7 @@
 #include <SoftwareSerial.h>
 
 /* Defines -----------------------------------------------------*/
-#define DEBUG_BLE  //blup: define to activate Debug prints
+//#define DEBUG_BLE  //blup: define to activate Debug prints
 
 /* Macros ----------------------------------------------------- */
 /* port manipulation makros */
@@ -94,7 +94,7 @@ public:
   {
     String name;               // 12 bytes
     String uuid;               // 16 bytes
-    uint16_t major;            // 2 bytes
+    uint16_t marjor;           // 2 bytes
     uint16_t minor;            // 2 bytes
     advertInterval_t interv;   // 4 bytes
     String accessAddress;      // 8 bytes
@@ -108,9 +108,9 @@ public:
   void enable();
   void disable();
   bool isBLEEnabled();
-  void setupAsIBeacon(iBeaconData_t *iBeacon);  // necessaray: name, uuid, major, minor, interv
+  void setupAsIBeacon(iBeaconData_t *iBeacon);  // necessaray: name, uuid, marjor, minor, interv
   void setupAsIBeaconDetector();
-  bool detectIBeacon(iBeaconData_t *iBeacon, uint16_t maxTimeToSearch = DEFAULT_DETECTION_TIME);  // necessary: uuid (you want to search for)
+  bool detectIBeacon(iBeaconData_t *iBeacon, uint16_t maxTimeToSearch = DEFAULT_DETECTION_TIME);  // necessary: uuid, marjor and minor (you want to search for)
   void forceRenew();  // try this if you can not communicate with the BLE-module anymore
 
 private:
