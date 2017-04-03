@@ -38,6 +38,8 @@ void BLE_HM11::disable()
   DebugBLE_println(F("disable BLE"));
   clearBit(*rstPort_, rstPin_);   // to prevent supply throug reset
   BLESerial_.end();
+  digitalWrite(rxd_, LOW);        // to prevent supply throug rxd
+  digitalWrite(txd_, LOW);        // to prevent supply throug txd
   setBit(*enPort_, enPin_);       // disable BLE
 }
 

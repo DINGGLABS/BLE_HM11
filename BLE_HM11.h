@@ -55,12 +55,14 @@ class BLE_HM11
 public:
   /* constructor(s) & deconstructor */
   BLE_HM11(SoftwareSerial& BLESerial,
+           uint8_t rxd, uint8_t txd,
            volatile uint8_t *enPort, uint8_t enPin,
            volatile uint8_t *rstPort, uint8_t rstPin) :
            BLESerial_(BLESerial),
+           rxd_(rxd), txd_(txd),
            enPort_(enPort), enPin_(enPin),
            rstPort_(rstPort), rstPin_(rstPin) {};
-    // Example instantation: BLE_HM11 BLE(BLESerial, &PORTD, 7, &PORTB, 0);
+    // Example instantation: BLE_HM11 BLE(BLESerial, 8, 9, &PORTD, 7, &PORTB, 0);
   ~BLE_HM11() {};
 
   /* public enumerations */
@@ -116,6 +118,8 @@ public:
 private:
   /* attributes */
   SoftwareSerial& BLESerial_;
+  uint8_t rxd_;
+  uint8_t txd_;
   volatile uint8_t *enPort_;
   uint8_t enPin_;
   volatile uint8_t *rstPort_;
