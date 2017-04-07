@@ -1,5 +1,5 @@
 /*******************************************************************************
-* \file    BLE_HM11.cpp
+* \file    HM11.cpp
 ********************************************************************************
 * \author  Jascha Haldemann jh@oxon.ch
 * \date    01.02.2017
@@ -7,7 +7,7 @@
 *******************************************************************************/
 
 /* ================================= Imports ================================ */
-#include "BLE_HM11.h"
+#include "HM11.h"
 
 /* ======================= Module constant declaration ====================== */
 
@@ -19,7 +19,7 @@
   * \param  baudrate  baudrate (see enumerator in the header-file)
   * \return true if setting the baudrate succeeded
   --------------------------------------------------------------------------- */
-  bool BLE_HM11::begin(uint32_t baudrate)
+  bool HM11::begin(uint32_t baudrate)
   {
     baudrate_ = baudrate_t(baudrate);
     enable();
@@ -30,7 +30,7 @@
   * \fn     end
   * \brief  deinit the HW
   --------------------------------------------------------------------------- */
-  void BLE_HM11::end()
+  void HM11::end()
   {
     disable();
   }
@@ -39,15 +39,15 @@
   * \fn     enable
   * \brief  enable the HW
   --------------------------------------------------------------------------- */
-  void BLE_HM11::enable()
+  void HM11::enable()
   {
     DebugBLE_println(F("enable BLE"));
     if (baudrate_ == 0) baudrate_ = DEFAULT_BAUDRATE;
     setBit(*rstPort_, rstPin_);     // stop resetting
     clearBit(*enPort_, enPin_);     // enable BLE
-    BLESerial_.begin(baudrate_);
-    while(!BLESerial_);
-    while(BLESerial_.available()) (void)BLESerial_.read();  // empty tx-buffer
+    BLESerial_begin(baudrate_);
+    while(!BLESerial_ready());
+    while(BLESerial_available()) (void)BLESerial_read();  // empty tx-buffer
     hwResetBLE();
   }
 
@@ -55,13 +55,13 @@
   * \fn     disable
   * \brief  disable the HW
   --------------------------------------------------------------------------- */
-  void BLE_HM11::disable()
+  void HM11::disable()
   {
     DebugBLE_println(F("disable BLE"));
     clearBit(*rstPort_, rstPin_);   // to prevent supply throug reset
-    BLESerial_.end();
-    digitalWrite(rxd_, LOW);        // to prevent supply throug rxd
-    digitalWrite(txd_, LOW);        // to prevent supply throug txd
+    BLESerial_end();
+    clearBit(rxdPort_, rxd_);       // to prevent supply throug rxd
+    clearBit(txdPort_, txd_);       // to prevent supply throug txd
     setBit(*enPort_, enPin_);       // disable BLE
   }
 
@@ -71,7 +71,7 @@
   *
   * \return true if the HW is enabled
   --------------------------------------------------------------------------- */
-  bool BLE_HM11::isEnabled()
+  bool HM11::isEnabled()
   {
     return !getBit(*enPort_, enPin_);
   }
@@ -83,7 +83,7 @@
   * \param  iBeacon  iBeacon structure pointer (see struct in the header-file)
   * \return None
   --------------------------------------------------------------------------- */
-  void BLE_HM11::setupAsIBeacon(iBeaconData_t *iBeacon)
+  void HM11::setupAsIBeacon(iBeaconData_t *iBeacon)
   {
     DebugBLE_println(F("setup BLE-Module as I-Beacon"));
 
@@ -163,7 +163,7 @@
   * \fn     setupAsIBeaconDetector
   * \brief  setup module as iBeacon detector
   --------------------------------------------------------------------------- */
-  void BLE_HM11::setupAsIBeaconDetector()
+  void HM11::setupAsIBeaconDetector()
   {
     DebugBLE_println(F("setup BLE-Module as I-Beacon detector"));
 
@@ -181,13 +181,13 @@
   * \param  maxTimeToSearch   max time to search for iBeacons in ms
   * \return None
   --------------------------------------------------------------------------- */
-  bool BLE_HM11::detectIBeacon(iBeaconData_t *iBeacon, uint16_t maxTimeToSearch)
+  bool HM11::detectIBeacon(iBeaconData_t *iBeacon, uint16_t maxTimeToSearch)
   {
     DebugBLE_println(F("detect I-Beacons"));
 
     bool match = false;
 
-    BLESerial_.flush();
+    BLESerial_flush();
 
     /* find near I-Beacons */
     String response = getConf(F("DISI"));
@@ -207,9 +207,9 @@
       DebugBLE_print(F("getFreeRAM() = ")); DebugBLE_println(getFreeRAM());
       while(data.indexOf("OK+DISCE") < 0 && !timeout && freeBytes > 0)
       {
-        if (BLESerial_.available() > 0)
+        if (BLESerial_available() > 0)
         {
-          data.concat(String(char(BLESerial_.read())));
+          data.concat(String(char(BLESerial_read())));
           freeBytes--;
         }
 
@@ -269,7 +269,10 @@
         iBeacon->txPower      |= hexStringToByte(data.substring(indexMatch+68, indexMatch+70));
         iBeacon->txPower      *= -1;
       }
-      else DebugBLE_println(F("no match"));
+      else
+      {
+        DebugBLE_println(F("no match"))
+      };
     }
     DebugBLE_print(F("getFreeRAM() = ")); DebugBLE_println(getFreeRAM());  // make sure its the same as at the beginning of the function
 
@@ -334,26 +337,26 @@
   //  {
   //    wakeUpStr.concat(char(random(66, 90)));  // 66 = 'B'... 90 = 'Z'
   //  }
-  //  BLESerial_.begin(BAUDRATE0);
-  //  BLESerial_.print(wakeUpStr);
-  //  (void)BLESerial_.readString();
-  //  BLESerial_.begin(baudrate_);
-  //  BLESerial_.flush();
+  //  BLESerial_begin(BAUDRATE0);
+  //  BLESerial_print(wakeUpStr);
+  //  (void)BLESerial_readString();
+  //  BLESerial_begin(baudrate_);
+  //  BLESerial_flush();
   // }
 
 /** -------------------------------------------------------------------------
   * \fn     forceRenew
   * \brief  try this if you can not communicate with the BLE module anymore
   --------------------------------------------------------------------------- */
-  void BLE_HM11::forceRenew()
+  void HM11::forceRenew()
   {
     baudrate_t baudratesArray[] = {BAUDRATE0, BAUDRATE1, BAUDRATE2, BAUDRATE3, BAUDRATE4};
     enable();
     for (uint8_t i = 0; i < sizeof(baudratesArray)/sizeof(baudrate_t); i++)
     {
       DebugBLE_println(baudratesArray[i]);
-      BLESerial_.begin(baudratesArray[i]);
-      while(!BLESerial_);
+      BLESerial_begin(baudratesArray[i]);
+      while(!BLESerial_ready());
       for (uint8_t n = 0; n < 5; n++) sendDirectBLECommand(F("AT"));
       for (uint8_t n = 0; (n < 5) && !setConf(F("RENEW")); n++) delay(DELAY_AFTER_SW_RESET_BLE);
     }
@@ -365,7 +368,7 @@
   * \fn     hwResetBLE
   * \brief  reset BLE module by HW
   --------------------------------------------------------------------------- */
-  void BLE_HM11::hwResetBLE()
+  void HM11::hwResetBLE()
   {
     clearBit(*rstPort_, rstPin_);
     delay(5);
@@ -377,7 +380,7 @@
   * \fn     swResetBLE
   * \brief  reset BLE module by SW
   --------------------------------------------------------------------------- */
-  void BLE_HM11::swResetBLE()
+  void HM11::swResetBLE()
   {
     setConf(F("RESET"));
     delay(DELAY_AFTER_SW_RESET_BLE);  // a long delay is necessary
@@ -387,7 +390,7 @@
   * \fn     renewBLE
   * \brief  restore BLE module to factory default
   --------------------------------------------------------------------------- */
-  void BLE_HM11::renewBLE()
+  void HM11::renewBLE()
   {
     setConf(F("RENEW"));              // restore all setup to factory default
     delay(DELAY_AFTER_SW_RESET_BLE);  // a long delay is necessary
@@ -401,7 +404,7 @@
   * \param  cmd  AT command
   * \return ture if it succeeded
   --------------------------------------------------------------------------- */
-  bool BLE_HM11::setConf(String cmd)
+  bool HM11::setConf(String cmd)
   {
     String response = sendDirectBLECommand("AT+" + cmd);
     return response.indexOf("OK") > -1 ? true : false;
@@ -414,7 +417,7 @@
   * \param  cmd  AT command
   * \return configured value as a string
   --------------------------------------------------------------------------- */
-  String BLE_HM11::getConf(String cmd)
+  String HM11::getConf(String cmd)
   {
     return sendDirectBLECommand("AT+" + cmd + "?");
   }
@@ -426,7 +429,7 @@
   * \param  baudrate  baudrate (see enumerator in the header-file)
   * \return true if it succeeded
   --------------------------------------------------------------------------- */
-  bool BLE_HM11::setBaudrate(baudrate_t baudrate)
+  bool HM11::setBaudrate(baudrate_t baudrate)
   {
     baudrate_ = baudrate;
     return setBaudrate();
@@ -438,7 +441,7 @@
   *
   * \return true if it succeeded
   --------------------------------------------------------------------------- */
-  bool BLE_HM11::setBaudrate()
+  bool HM11::setBaudrate()
   {
     bool successful = true;
     uint32_t currentBaudrate = getBaudrate();
@@ -451,8 +454,8 @@
       DebugBLE_println(F("set new baudrate..."));
       if (currentBaudrate != BAUDRATE0) renewBLE();
 
-      BLESerial_.begin(DEFAULT_BAUDRATE);
-      while(!BLESerial_);
+      BLESerial_begin(DEFAULT_BAUDRATE);
+      while(!BLESerial_ready());
 
       switch(baudrate_)
       {
@@ -470,8 +473,8 @@
 
       swResetBLE();
 
-      BLESerial_.begin(baudrate_);
-      while(!BLESerial_);
+      BLESerial_begin(baudrate_);
+      while(!BLESerial_ready());
 
       /* check if setting the baudrate failed */
       if (getConf(F("BAUD")).indexOf("OK") < 0) //handleError("set baudrate failed!");
@@ -490,7 +493,7 @@
   *
   * \return baudrate  baudrate (see enumerator in the header-file)
   --------------------------------------------------------------------------- */
-  BLE_HM11::baudrate_t BLE_HM11::getBaudrate()
+  uint32_t HM11::getBaudrate()
   {
     DebugBLE_println(F("getBaudrate..."));
 
@@ -501,8 +504,8 @@
     for (i = 0; (response.indexOf("OK") < 0) && (i < sizeof(baudratesArray)/sizeof(baudrate_t)); i++)
     {
       DebugBLE_println(baudratesArray[i]);
-      BLESerial_.begin(baudratesArray[i]);
-      while(!BLESerial_);
+      BLESerial_begin(baudratesArray[i]);
+      while(!BLESerial_ready());
       for (uint8_t n = 0; (n < 5) && (response.indexOf("OK") < 0); n++)
       {
         /* try 5 times per baudrate */
@@ -527,7 +530,7 @@
   * \param  cmd  AT command
   * \return response of the BLE module as a string
   --------------------------------------------------------------------------- */
-  String BLE_HM11::sendDirectBLECommand(String cmd)
+  String HM11::sendDirectBLECommand(String cmd)
   {
     bool failed = false;
     String response = "";
@@ -537,14 +540,14 @@
     if(cmd.indexOf("+") >= 0) waitForMore = true;
     /* send command */
     DebugBLE_print(F("send:\t\t")); DebugBLE_println(cmd);
-    BLESerial_.print(cmd);
+    BLESerial_print(cmd);
     /* get response */
     uint32_t startMillis_BLE = millis();
-    while ((response.indexOf("OK") < 0 || BLESerial_.available() || waitForMore) && !failed)
+    while ((response.indexOf("OK") < 0 || BLESerial_available() || waitForMore) && !failed)
     {
-      if (BLESerial_.available())
+      if (BLESerial_available())
       {
-        response.concat(char(BLESerial_.read()));
+        response.concat(char(BLESerial_read()));
 
         /* special delay (necessary! -> wait some time to let the Serial buffer be filled) */
         #ifdef DEBUG_BLE
@@ -570,7 +573,7 @@
     DebugBLE_print(F("dt =\t\t")); DebugBLE_print(String(millis() - startMillis_BLE)); DebugBLE_println(F("ms"));
     DebugBLE_println("");
 
-    BLESerial_.flush();
+    BLESerial_flush();
 
     response.trim();
 
@@ -583,7 +586,7 @@
   *
   * \return free memory between heap and stack
   --------------------------------------------------------------------------- */
-  int16_t BLE_HM11::getFreeRAM()
+  int16_t HM11::getFreeRAM()
   {
     extern int16_t __heap_start, *__brkval;
     int16_t v;
@@ -597,7 +600,7 @@
   * \param  hex   hex byte
   * \return Strig with two HEX characters
   --------------------------------------------------------------------------- */
-  String BLE_HM11::byteToHexString(uint8_t hex)
+  String HM11::byteToHexString(uint8_t hex)
   {
     String str;
     str.reserve(2);
@@ -613,7 +616,7 @@
   * \param  str   hex String
   * \return hex byte
   --------------------------------------------------------------------------- */
-  uint8_t BLE_HM11::hexStringToByte(String str)
+  uint8_t HM11::hexStringToByte(String str)
   {
     return ((hexCharacterToNibble(str[0]) << 4) & 0xF0) | (hexCharacterToNibble(str[1]) & 0x0F);
   }
@@ -625,7 +628,7 @@
   * \param  nibble   nibble (as byte)
   * \return hex character
   --------------------------------------------------------------------------- */
-  char BLE_HM11::nibbleToHexCharacter(uint8_t nibble)
+  char HM11::nibbleToHexCharacter(uint8_t nibble)
   {
     return (nibble > 9) ? (char)(nibble + 'A' - 10) : (char)(nibble + '0');
   }
@@ -637,7 +640,7 @@
   * \param  hex   hex character
   * \return nibble (as byte)
   --------------------------------------------------------------------------- */
-  uint8_t BLE_HM11::hexCharacterToNibble(char hex)
+  uint8_t HM11::hexCharacterToNibble(char hex)
   {
     return (hex >= 'A') ? (uint8_t)(hex - 'A' + 10) : (uint8_t)(hex - '0');
   }

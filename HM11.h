@@ -1,17 +1,20 @@
-#ifndef _LIB_BLE_HM11_H_
-#define _LIB_BLE_HM11_H_
+#ifndef _LIB_HM11_H_
+#define _LIB_HM11_H_
 /*******************************************************************************
-* \file    BLE_HM11.h
+* \file    HM11.h
 ********************************************************************************
 * \author  Jascha Haldemann jh@oxon.ch
 * \date    01.02.2017
 * \version 1.0
-
-* \brief   The BLE_HM11 is a V4.0 Bluetooth Low Power module
-
+*
+* \brief   The HM11 is a V4.0 Bluetooth Low Power module
+*
 * \section DESCRIPTION
-* The BLE_HM11 can be controlled with AT commands via UART.
-* It unites the Master and Slave roles in one.
+* The HM11 can be controlled with AT commands via UART.
+* Instantiate either HM11_HardwareSerial or HM11_SoftwareSerial which
+* inherites from the HM11 class.
+*
+* The HM11 unites the Master and Slave roles in one.
 * - Transmission version: transmit data between two BLE devices
 * - Remote Control: Control GPIOs of the HM11 remotely
 * Factory defaults:
@@ -23,7 +26,6 @@
 
 /* ============================== Global imports ============================ */
 #include <Arduino.h>
-#include <SoftwareSerial.h>
 
 /* ==================== Global module constant declaration ================== */
 
@@ -51,7 +53,7 @@
 #endif
 
 /* ============================ Class declaration =========================== */
-class BLE_HM11
+class HM11
 {
 public:
   /* Public member typedefs */
@@ -94,16 +96,15 @@ public:
   //...
 
   /* Constructor(s) and  Destructor*/
-  BLE_HM11(SoftwareSerial& BLESerial,
-           uint8_t rxd, uint8_t txd,
-           volatile uint8_t *enPort, uint8_t enPin,
-           volatile uint8_t *rstPort, uint8_t rstPin) :
-           BLESerial_(BLESerial),
-           rxd_(rxd), txd_(txd),
-           enPort_(enPort), enPin_(enPin),
-           rstPort_(rstPort), rstPin_(rstPin) {};
-    // Example instantation: BLE_HM11 BLE(BLESerial, 8, 9, &PORTD, 7, &PORTB, 0);
-  ~BLE_HM11() {};
+  HM11(volatile uint8_t *rxdPort, uint8_t rxd,
+    volatile uint8_t *txdPort, uint8_t txd,
+    volatile uint8_t *enPort, uint8_t enPin,
+    volatile uint8_t *rstPort, uint8_t rstPin) :
+    rxdPort_(rxdPort), rxd_(rxd),
+    txdPort_(txdPort), txd_(txd),
+    enPort_(enPort), enPin_(enPin),
+    rstPort_(rstPort), rstPin_(rstPin) {};
+  ~HM11() {};
 
   /* Public member functions */
   bool begin(uint32_t baudrate = uint32_t(DEFAULT_BAUDRATE));
@@ -131,8 +132,9 @@ private:
   //static const uint16_t NUMBER_CHARS_PER_DEVICE    = 78;         // including the "OK+DISC:"
 
   /* Private member data */
-  SoftwareSerial& BLESerial_;
+  volatile uint8_t *rxdPort_;
   uint8_t rxd_;
+  volatile uint8_t *txdPort_;
   uint8_t txd_;
   volatile uint8_t *enPort_;
   uint8_t enPin_;
@@ -150,13 +152,22 @@ private:
   bool setBaudrate(baudrate_t baudrate);
   bool setBaudrate();
   String getConf(String cmd);
-  baudrate_t getBaudrate();
+  uint32_t getBaudrate();
   String sendDirectBLECommand(String cmd);
   int16_t getFreeRAM();
   String byteToHexString(uint8_t hex);
   uint8_t hexStringToByte(String str);
   char nibbleToHexCharacter(uint8_t nibble);
   uint8_t hexCharacterToNibble(char hex);
+
+  // virtual functions
+  virtual void BLESerial_begin(int32_t baudrate);
+  virtual void BLESerial_end();
+  virtual bool BLESerial_ready();  // while(!BLESerial_ready());
+  virtual uint16_t BLESerial_available();
+  virtual void BLESerial_print(String str);
+  virtual int16_t BLESerial_read();
+  virtual void BLESerial_flush();
 };
 
 #endif
