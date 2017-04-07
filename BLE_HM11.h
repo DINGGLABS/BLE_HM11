@@ -1,44 +1,45 @@
-/**-----------------------------------------------------------------------------
- * \file    BLE_HM11.h
- * \author  jh
- * \date    xx.02.2017
- *
- * \version 1.0
- *
- * \brief   The BLE_HM11 is a V4.0 Bluetooth Low Power module that can be controlled
- *          with AT commands via UART. It unites the Master and Slave roles in one.
- *          - Transmission version: transmit data between two BLE devices
- *          - Remote Control: Control GPIOs of the HM11 remotely
- *          Factory defaults:
- *            Name: HMSoft; Baud: 9600, N, 8, 1; Pin code: 1234; transmit Version
- *
- * @{
- -----------------------------------------------------------------------------*/
+#ifndef _LIB_BLE_HM11_H_
+#define _LIB_BLE_HM11_H_
+/*******************************************************************************
+* \file    BLE_HM11.h
+********************************************************************************
+* \author  Jascha Haldemann jh@oxon.ch
+* \date    01.02.2017
+* \version 1.0
 
-/* Define to prevent recursive inclusion -----------------------*/
-#ifndef BLE_HM11_H_
-#define BLE_HM11_H_
+* \brief   The BLE_HM11 is a V4.0 Bluetooth Low Power module
 
-/* Includes --------------------------------------------------- */
+* \section DESCRIPTION
+* The BLE_HM11 can be controlled with AT commands via UART.
+* It unites the Master and Slave roles in one.
+* - Transmission version: transmit data between two BLE devices
+* - Remote Control: Control GPIOs of the HM11 remotely
+* Factory defaults:
+*  Name: HMSoft; Baud: 9600, N, 8, 1; Pin code: 1234; transmit Version
+*
+********************************************************************************
+* BLE Library
+*******************************************************************************/
+
+/* ------------------------------ Global imports ---------------------------- */
 #include <Arduino.h>
 #include <SoftwareSerial.h>
 
-/* Defines -----------------------------------------------------*/
-//#define DEBUG_BLE  //blup: define to activate Debug prints
+/* -------------------- Global module constant declaration ------------------ */
 
-/* Macros ----------------------------------------------------- */
+/* ------------------------- Global macro declaration ----------------------- */
 /* port manipulation makros */
 #ifndef clearBit
-#define clearBit(reg, bit) (_SFR_BYTE(reg) &= ~_BV(bit))
+  #define clearBit(reg, bit) (_SFR_BYTE(reg) &= ~_BV(bit))
 #endif
 #ifndef setBit
-#define setBit(reg, bit) (_SFR_BYTE(reg) |= _BV(bit))
+  #define setBit(reg, bit) (_SFR_BYTE(reg) |= _BV(bit))
 #endif
 #ifndef toggleBit
-#define toggleBit(reg, bit) (_SFR_BYTE(reg) ^= _BV(bit))
+  #define toggleBit(reg, bit) (_SFR_BYTE(reg) ^= _BV(bit))
 #endif
 #ifndef getBit
-#define getBit(reg, bit) ((_SFR_BYTE(reg) & _BV(bit)) != 0)
+  #define getBit(reg, bit) ((_SFR_BYTE(reg) & _BV(bit)) != 0)
 #endif
 
 #ifdef DEBUG_BLE
@@ -49,26 +50,11 @@
   #define DebugBLE_println(...)
 #endif
 
-/* Class ------------------------------------------------------ */
+/* ---------------------------- Class declaration --------------------------- */
 class BLE_HM11
 {
 public:
-  /* constructor(s) & deconstructor */
-  BLE_HM11(SoftwareSerial& BLESerial,
-           uint8_t rxd, uint8_t txd,
-           volatile uint8_t *enPort, uint8_t enPin,
-           volatile uint8_t *rstPort, uint8_t rstPin) :
-           BLESerial_(BLESerial),
-           rxd_(rxd), txd_(txd),
-           enPort_(enPort), enPin_(enPin),
-           rstPort_(rstPort), rstPin_(rstPin) {};
-    // Example instantation: BLE_HM11 BLE(BLESerial, 8, 9, &PORTD, 7, &PORTB, 0);
-  ~BLE_HM11() {};
-
-  /* public enumerations */
-  //...
-
-  /* public typedefs */
+  /* Public member typedefs */
   typedef enum : uint32_t
   {
     BAUDRATE0 = 9600,
@@ -77,7 +63,7 @@ public:
     BAUDRATE3 = 57600,
     BAUDRATE4 = 115200
   } baudrate_t;
-  
+
   typedef enum : uint8_t
   {
     INTERV_100MS  = 0,
@@ -104,28 +90,34 @@ public:
     int16_t txPower;           // 2 bytes
   } iBeaconData_t;
 
-  /* public methods */
+  /* Public member data */
+  //...
+
+  /* Constructor(s) and  Destructor*/
+  BLE_HM11(SoftwareSerial& BLESerial,
+           uint8_t rxd, uint8_t txd,
+           volatile uint8_t *enPort, uint8_t enPin,
+           volatile uint8_t *rstPort, uint8_t rstPin) :
+           BLESerial_(BLESerial),
+           rxd_(rxd), txd_(txd),
+           enPort_(enPort), enPin_(enPin),
+           rstPort_(rstPort), rstPin_(rstPin) {};
+    // Example instantation: BLE_HM11 BLE(BLESerial, 8, 9, &PORTD, 7, &PORTB, 0);
+  ~BLE_HM11() {};
+
+  /* Public member functions */
   bool begin(uint32_t baudrate = uint32_t(DEFAULT_BAUDRATE));
   void end();
   void enable();
   void disable();
-  bool isBLEEnabled();
+  bool isEnabled();
   void setupAsIBeacon(iBeaconData_t *iBeacon);  // necessaray: name, uuid, marjor, minor, interv
   void setupAsIBeaconDetector();
   bool detectIBeacon(iBeaconData_t *iBeacon, uint16_t maxTimeToSearch = DEFAULT_DETECTION_TIME);  // necessary: uuid, marjor and minor (you want to search for)
   void forceRenew();  // try this if you can not communicate with the BLE-module anymore
 
 private:
-  /* attributes */
-  SoftwareSerial& BLESerial_;
-  uint8_t rxd_;
-  uint8_t txd_;
-  volatile uint8_t *enPort_;
-  uint8_t enPin_;
-  volatile uint8_t *rstPort_;
-  uint8_t rstPin_;
-
-  /* private constants (static) */
+  /*  Private constant declerations (static) */
   static const baudrate_t DEFAULT_BAUDRATE         = BAUDRATE0;
   static const uint8_t DEFAULT_RESPONSE_LENGTH     = 8;          // in characters
   static const uint16_t COMMAND_TIMEOUT_TIME       = 100;        // in ms (discovered empirically)
@@ -137,12 +129,20 @@ private:
   static const uint16_t MIN_RAM                    = 253;        // in bytes -> keep the RAM > 200 to prevent bugs!
   //static const uint16_t MAX_NUMBER_IBEACONS        = 6;          // max = 6 (keep the RAM in minde!)
   //static const uint16_t NUMBER_CHARS_PER_DEVICE    = 78;         // including the "OK+DISC:"
-  
-  /* private variables */
+
+  /* Private member data */
+  SoftwareSerial& BLESerial_;
+  uint8_t rxd_;
+  uint8_t txd_;
+  volatile uint8_t *enPort_;
+  uint8_t enPin_;
+  volatile uint8_t *rstPort_;
+  uint8_t rstPin_;
+
   uint32_t baudrate_;
   //iBeaconData_t iBeaconData_[MAX_NUMBER_IBEACONS];
 
-  /* private methods */
+  /* Private member functions */
   void hwResetBLE();
   void swResetBLE();
   void renewBLE();
@@ -160,7 +160,3 @@ private:
 };
 
 #endif
-
-/**
- * @}
- */
