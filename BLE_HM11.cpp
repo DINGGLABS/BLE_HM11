@@ -579,9 +579,9 @@
 
 /** -------------------------------------------------------------------------
   * \fn     getFreeRAM
-  * \brief  returns the size of the free RAM space
+  * \brief  returns the size in bytes between the heap and the stack
   *
-  * \return free RAM size
+  * \return free memory between heap and stack
   --------------------------------------------------------------------------- */
   int16_t BLE_HM11::getFreeRAM()
   {
