@@ -21,13 +21,13 @@
 * BLE Library
 *******************************************************************************/
 
-/* ------------------------------ Global imports ---------------------------- */
+/* ============================== Global imports ============================ */
 #include <Arduino.h>
 #include <SoftwareSerial.h>
 
-/* -------------------- Global module constant declaration ------------------ */
+/* ==================== Global module constant declaration ================== */
 
-/* ------------------------- Global macro declaration ----------------------- */
+/* ========================= Global macro declaration ======================= */
 /* port manipulation makros */
 #ifndef clearBit
   #define clearBit(reg, bit) (_SFR_BYTE(reg) &= ~_BV(bit))
@@ -50,7 +50,7 @@
   #define DebugBLE_println(...)
 #endif
 
-/* ---------------------------- Class declaration --------------------------- */
+/* ============================ Class declaration =========================== */
 class BLE_HM11
 {
 public:
