@@ -40,8 +40,8 @@ public:
     volatile uint8_t *txdPort, uint8_t txd,
     volatile uint8_t *enPort, uint8_t enPin,
     volatile uint8_t *rstPort, uint8_t rstPin) :
-    BLESerial_(BLESerial),
-    HM11(rxdPort, rxd, txdPort, txd, enPort, enPin, rstPort, rstPin) {};
+    HM11(rxdPort, rxd, txdPort, txd, enPort, enPin, rstPort, rstPin),
+    BLESerial_(BLESerial) {};
   ~HM11_HardwareSerial() {};
   // Example instantation:
   // HM11_HardwareSerial BLE(Serial1, &PORTB, 4, &PORTB, 3, &PORTD, 7, &PORTB, 0);
