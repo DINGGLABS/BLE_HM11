@@ -46,7 +46,7 @@ public:
   ~HM11_SoftwareSerial() {};
   // Example instantation:
   // SoftwareSerial BLESerial(8, 9);
-  // HM11 BLE(BLESerial, &PORTD, 8, &PORTD, 9, &PORTD, 7, &PORTB, 0);
+  // HM11_SoftwareSerial BLE(BLESerial, &PORTD, 8, &PORTD, 9, &PORTD, 7, &PORTB, 0);
 
   /* Public member functions */
   //...
@@ -57,7 +57,7 @@ private:
 
   /* Private member data */
   SoftwareSerial& BLESerial_;
-  
+
   /* Private member functions */
   void BLESerial_begin(int32_t baudrate) {BLESerial_.begin(baudrate);}
   void BLESerial_end() {BLESerial_.end();}

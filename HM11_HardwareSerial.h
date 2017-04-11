@@ -44,7 +44,7 @@ public:
     HM11(rxdPort, rxd, txdPort, txd, enPort, enPin, rstPort, rstPin) {};
   ~HM11_HardwareSerial() {};
   // Example instantation:
-  // HM11 BLE(Serial1, &PORTB, 4, &PORTB, 3, &PORTD, 7, &PORTB, 0);
+  // HM11_HardwareSerial BLE(Serial1, &PORTB, 4, &PORTB, 3, &PORTD, 7, &PORTB, 0);
 
   /* Public member functions */
   //...
@@ -55,7 +55,7 @@ private:
 
   /* Private member data */
   HardwareSerial& BLESerial_;
-  
+
   /* Private member functions */
   void BLESerial_begin(int32_t baudrate) {BLESerial_.begin(baudrate);}
   void BLESerial_end() {BLESerial_.end();}
