@@ -219,31 +219,34 @@
       }
       DebugBLE_print(deviceCounter); DebugBLE_println(F(" device(s) found"));
 
-      /* convert given uuid to hex */
-      String uuidHex = "";
-      uuidHex.reserve(32);
-      DebugBLE_print(F("iBeacon->uuid = ")); DebugBLE_println(iBeacon->uuid);
-      for (uint8_t n = 0; n < 16; n++)
-      {
-        uuidHex.concat(byteToHexString(uint8_t((iBeacon->uuid)[n] - '0')));
-      }
-      DebugBLE_print("uuidHex = "); DebugBLE_println(uuidHex);
+      // /* convert given uuid to hex */
+      // String uuidHex = "";
+      // uuidHex.reserve(32);
+      // DebugBLE_print(F("iBeacon->uuid = ")); DebugBLE_println(iBeacon->uuid);
+      // for (uint8_t n = 0; n < 16; n++)
+      // {
+      //   uuidHex.concat(byteToHexString(uint8_t((iBeacon->uuid)[n] - '0')));
+      // }
+      // DebugBLE_print("uuidHex = "); DebugBLE_println(uuidHex);
+
+      DebugBLE_print(F("uuidHex =\t")); DebugBLE_println(iBeacon->uuid);
 
       /* convert given marjor and minor to hex */
       String marjorHex = byteToHexString(uint8_t((iBeacon->marjor & 0xFF00) >> 8)) + byteToHexString(uint8_t(iBeacon->marjor));
-      DebugBLE_print("marjorHex = "); DebugBLE_println(marjorHex);
+      DebugBLE_print(F("marjorHex =\t")); DebugBLE_println(marjorHex);
       String minorHex = byteToHexString(uint8_t((iBeacon->minor & 0xFF00) >> 8)) + byteToHexString(uint8_t(iBeacon->minor));
-      DebugBLE_print("minorHex = "); DebugBLE_println(minorHex);
+      DebugBLE_print(F("minorHex =\t")); DebugBLE_println(minorHex);
 
-      /* check for a UUID match */
-      uint16_t indexUUID = data.indexOf(uuidHex);
+
+      /* check for a UUID, marjor and minor match */
+      uint16_t indexUUID = data.indexOf(iBeacon->uuid);
       if ((indexUUID >= 0) && (data.indexOf(marjorHex, indexUUID) >= 0) && (data.indexOf(minorHex, indexUUID) >= 0))
       {
         DebugBLE_println(F("match!"));
         match = true;
 
         /* process data */
-        uint16_t indexMatch = data.indexOf(uuidHex) - 9;
+        uint16_t indexMatch = data.indexOf(iBeacon->uuid) - 9;
         iBeacon->accessAddress = data.substring(indexMatch, indexMatch+8);
         iBeacon->deviceAddress = data.substring(indexMatch+53, indexMatch+65);
         iBeacon->marjor        = hexStringToByte(data.substring(indexMatch+42, indexMatch+44)) << 8;
