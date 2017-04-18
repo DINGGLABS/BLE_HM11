@@ -28,6 +28,8 @@
 #include <Arduino.h>
 
 /* ==================== Global module constant declaration ================== */
+//#define DEBUG_BLE                     //blup: define to activate the Serial Debug prints
+#define DEBUG_BLE_BAUDRATE    115200    // in Baud
 
 /* ========================= Global macro declaration ======================= */
 /* port manipulation makros */
@@ -83,7 +85,7 @@ public:
   typedef struct
   {
     String name;               // 12 bytes
-    String uuid;               // 16 bytes
+    String uuid;               // 16 bytes -> 32 hex digits
     uint16_t marjor;           // 2 bytes
     uint16_t minor;            // 2 bytes
     advertInterval_t interv;   // 4 bytes
@@ -116,6 +118,10 @@ public:
   void setupAsIBeaconDetector();
   bool detectIBeacon(iBeaconData_t *iBeacon, uint16_t maxTimeToSearch = DEFAULT_DETECTION_TIME);  // necessary: uuid, marjor and minor (you want to search for)
   void forceRenew();  // try this if you can not communicate with the BLE-module anymore
+
+  /* Public static member functions */
+  static String byteToHexString(uint8_t hex);
+  static uint8_t hexStringToByte(String str);
 
 private:
   /*  Private constant declerations (static) */
@@ -154,11 +160,11 @@ private:
   String getConf(String cmd);
   uint32_t getBaudrate();
   String sendDirectBLECommand(String cmd);
-  int16_t getFreeRAM();
-  String byteToHexString(uint8_t hex);
-  uint8_t hexStringToByte(String str);
-  char nibbleToHexCharacter(uint8_t nibble);
-  uint8_t hexCharacterToNibble(char hex);
+
+  /* Private static member functions */
+  static int16_t getFreeRAM();
+  static char nibbleToHexCharacter(uint8_t nibble);
+  static uint8_t hexCharacterToNibble(char hex);
 
   // virtual functions
   virtual void BLESerial_begin(int32_t baudrate);

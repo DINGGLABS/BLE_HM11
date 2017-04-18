@@ -21,6 +21,10 @@
   --------------------------------------------------------------------------- */
   bool HM11::begin(uint32_t baudrate)
   {
+    #ifdef DEBUG_BLE
+      Serial.begin(DEBUG_BLE_BAUDRATE);
+    #endif
+
     baudrate_ = baudrate_t(baudrate);
     enable();
     return setBaudrate();
@@ -90,34 +94,15 @@
     bool uuidValid = true;
 
     /* control if given parameters are valid */
-    if ((iBeacon->name).length() > 12) {DebugBLE_println(F("name ist too long!")); return;}
-    if ((iBeacon->uuid).length() != 16) uuidValid = false;
-    for (uint8_t n = 0; n < 16; n++)
-    {
-      if ((iBeacon->uuid)[n] < '1' || (iBeacon->uuid)[n] > '9')
-      {
-        uuidValid = false;
-        break;
-      }
-    }
-    if (!uuidValid)
-    {
-      DebugBLE_println(F("The UUID has to consist of 16 numbers (1... 9)!"));
-      return;
-    }
-    if (iBeacon->marjor == 0 || iBeacon->marjor == 0xFFFF) {DebugBLE_println(F("marjor have to be between 0 and 65'534!")); return;}
-    if (iBeacon->minor == 0 || iBeacon->minor == 0xFFFF) {DebugBLE_println(F("minor have to be between 0 and 65'534!")); return;}
+    if ((iBeacon->name).length() > 12)  {DebugBLE_println(F("name ist too long!")); return;}
+    if ((iBeacon->uuid).length() != 32) {DebugBLE_println(F("UUID is invalid!")); return;}
+    if (iBeacon->marjor == 0 || iBeacon->marjor >= 0xFFFE) {DebugBLE_println(F("marjor have to be between 0 and 65'534!")); return;}
+    if (iBeacon->minor  == 0 || iBeacon->minor  >= 0xFFFE) {DebugBLE_println(F("minor have to be between 0 and 65'534!")); return;}
     if (iBeacon->interv > INTERV_1285MS) {DebugBLE_println(F("unallowed interval!")); return;}
 
     /* convert given parameters to hex values */
-    String uuidHex = "";
-    uuidHex.reserve(32);
-    for (uint8_t n = 0; n < 16; n++)
-    {
-      uuidHex.concat(byteToHexString(uint8_t((iBeacon->uuid)[n] - '0')));
-    }
     String marjorHex = byteToHexString(uint8_t((iBeacon->marjor & 0xFF00) >> 8)) + byteToHexString(uint8_t(iBeacon->marjor));
-    String minorHex = byteToHexString(uint8_t((iBeacon->minor & 0xFF00) >> 8)) + byteToHexString(uint8_t(iBeacon->minor));
+    String minorHex  = byteToHexString(uint8_t((iBeacon->minor  & 0xFF00) >> 8)) + byteToHexString(uint8_t(iBeacon->minor));
 
     /* I-Beacon setup */
     uint32_t t = millis();
@@ -125,10 +110,10 @@
     swResetBLE();
     setConf("MARJ0x" + marjorHex);
     setConf("MINO0x" + minorHex);
-    setConf("IBE0" + uuidHex.substring(0, 8));
-    setConf("IBE1" + uuidHex.substring(8, 16));
-    setConf("IBE2" + uuidHex.substring(16, 24));
-    setConf("IBE3" + uuidHex.substring(24, 32));
+    setConf("IBE0" + iBeacon->uuid.substring(0, 8));
+    setConf("IBE1" + iBeacon->uuid.substring(8, 16));
+    setConf("IBE2" + iBeacon->uuid.substring(16, 24));
+    setConf("IBE3" + iBeacon->uuid.substring(24, 32));
     setConf("NAME" + iBeacon->name);
     setConf("ADVI" + String(iBeacon->interv));
     setConf(F("ADTY3"));     // advertising type (3 = advertising only)
@@ -271,7 +256,7 @@
       }
       else
       {
-        DebugBLE_println(F("no match"))
+        DebugBLE_println(F("no match"));
       };
     }
     DebugBLE_print(F("getFreeRAM() = ")); DebugBLE_println(getFreeRAM());  // make sure its the same as at the beginning of the function
@@ -361,6 +346,35 @@
       for (uint8_t n = 0; (n < 5) && !setConf(F("RENEW")); n++) delay(DELAY_AFTER_SW_RESET_BLE);
     }
     disable();
+  }
+
+/* ==================== Public static member Functions ====================== */
+/** -------------------------------------------------------------------------
+  * \fn     byteToHexString
+  * \brief  converts given hex byte to a String with two characters
+  *
+  * \param  hex   hex byte
+  * \return Strig with two HEX characters
+  --------------------------------------------------------------------------- */
+  static String HM11::byteToHexString(uint8_t hex)
+  {
+    String str;
+    str.reserve(2);
+    str.concat(nibbleToHexCharacter((hex & 0xF0) >> 4));
+    str.concat(nibbleToHexCharacter(hex & 0x0F));
+    return str;
+  }
+
+/** -------------------------------------------------------------------------
+  * \fn     hexStringToByte
+  * \brief  converts given hex String with two characters to a byte
+  *
+  * \param  str   hex String
+  * \return hex byte
+  --------------------------------------------------------------------------- */
+  static uint8_t HM11::hexStringToByte(String str)
+  {
+    return ((hexCharacterToNibble(str[0]) << 4) & 0xF0) | (hexCharacterToNibble(str[1]) & 0x0F);
   }
 
 /* ======================= Private member Functions ========================= */
@@ -580,45 +594,18 @@
     return response;
   }
 
+/* ==================== Private static member Functions ===================== */
 /** -------------------------------------------------------------------------
   * \fn     getFreeRAM
   * \brief  returns the size in bytes between the heap and the stack
   *
   * \return free memory between heap and stack
   --------------------------------------------------------------------------- */
-  int16_t HM11::getFreeRAM()
+  static int16_t HM11::getFreeRAM()
   {
     extern int16_t __heap_start, *__brkval;
     int16_t v;
     return (int16_t) &v - (__brkval == 0 ? (int16_t) &__heap_start : (int16_t) __brkval);
-  }
-
-/** -------------------------------------------------------------------------
-  * \fn     byteToHexString
-  * \brief  converts given hex byte to a String with two characters
-  *
-  * \param  hex   hex byte
-  * \return Strig with two HEX characters
-  --------------------------------------------------------------------------- */
-  String HM11::byteToHexString(uint8_t hex)
-  {
-    String str;
-    str.reserve(2);
-    str.concat(nibbleToHexCharacter((hex & 0xF0) >> 4));
-    str.concat(nibbleToHexCharacter(hex & 0x0F));
-    return str;
-  }
-
-/** -------------------------------------------------------------------------
-  * \fn     hexStringToByte
-  * \brief  converts given hex String with two characters to a byte
-  *
-  * \param  str   hex String
-  * \return hex byte
-  --------------------------------------------------------------------------- */
-  uint8_t HM11::hexStringToByte(String str)
-  {
-    return ((hexCharacterToNibble(str[0]) << 4) & 0xF0) | (hexCharacterToNibble(str[1]) & 0x0F);
   }
 
 /** -------------------------------------------------------------------------
@@ -628,7 +615,7 @@
   * \param  nibble   nibble (as byte)
   * \return hex character
   --------------------------------------------------------------------------- */
-  char HM11::nibbleToHexCharacter(uint8_t nibble)
+  static char HM11::nibbleToHexCharacter(uint8_t nibble)
   {
     return (nibble > 9) ? (char)(nibble + 'A' - 10) : (char)(nibble + '0');
   }
@@ -640,7 +627,7 @@
   * \param  hex   hex character
   * \return nibble (as byte)
   --------------------------------------------------------------------------- */
-  uint8_t HM11::hexCharacterToNibble(char hex)
+  static uint8_t HM11::hexCharacterToNibble(char hex)
   {
     return (hex >= 'A') ? (uint8_t)(hex - 'A' + 10) : (uint8_t)(hex - '0');
   }
