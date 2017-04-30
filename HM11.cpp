@@ -7,9 +7,28 @@
 *******************************************************************************/
 
 /* ================================= Imports ================================ */
+//#include <SoftwareSerial2.h>      // to Debug
 #include "HM11.h"
 
 /* ======================= Module constant declaration ====================== */
+//#define DEBUG_BLE                     //blup: define to activate the Serial Debug prints
+#define DEBUG_BLE_PIN         6         // Arduino 6 = PD6
+#define DEBUG_BLE_BAUDRATE    115200    // in Baud
+
+/* ======================== Private macro declaration ======================= */
+#ifdef DEBUG_BLE
+  #include <SoftwareSerial2.h>
+  // #define DebugBLE_print(...)     Serial.print(__VA_ARGS__)
+  // #define DebugBLE_println(...)   Serial.println(__VA_ARGS__)
+  #define DebugBLE_print(...)     DebugBLE.print(__VA_ARGS__)
+  #define DebugBLE_println(...)   DebugBLE.println(__VA_ARGS__)
+  SoftwareSerial2 DebugBLE(-1, DEBUG_BLE_PIN);  //blup: comment for OXOcard
+#else
+  #define DebugBLE_print(...)
+  #define DebugBLE_println(...)
+#endif
+
+/* ========================== Class instantiations ========================== */
 
 /* ======================== Public member Functions ========================= */
 /** -------------------------------------------------------------------------
@@ -22,7 +41,10 @@
   bool HM11::begin(uint32_t baudrate)
   {
     #ifdef DEBUG_BLE
-      Serial.begin(DEBUG_BLE_BAUDRATE);
+      //Serial.begin(DEBUG_BLE_BAUDRATE);
+      //while(!Serial);
+      DebugBLE.begin(DEBUG_BLE_BAUDRATE); //blup
+      while(!DebugBLE); //blup
     #endif
 
     baudrate_ = baudrate_t(baudrate);
@@ -89,7 +111,7 @@
   --------------------------------------------------------------------------- */
   void HM11::setupAsIBeacon(iBeaconData_t *iBeacon)
   {
-    DebugBLE_println(F("setup BLE-Module as I-Beacon"));
+    DebugBLE_println(F("setup as iBeacon"));
 
     bool uuidValid = true;
 
@@ -150,7 +172,7 @@
   --------------------------------------------------------------------------- */
   void HM11::setupAsIBeaconDetector()
   {
-    DebugBLE_println(F("setup BLE-Module as I-Beacon detector"));
+    DebugBLE_println(F("setup as iBeacon detector"));
 
     /* iBeacon-Detector setup */
     setConf(F("IMME1"));     // module work type (1 = responds only to AT-commands)
@@ -164,11 +186,11 @@
   *
   * \param  iBeacon           iBeacon structure pointer (see struct in the header-file)
   * \param  maxTimeToSearch   max time to search for iBeacons in ms
-  * \return None
+  * \return true if an iBeacon was found
   --------------------------------------------------------------------------- */
   bool HM11::detectIBeacon(iBeaconData_t *iBeacon, uint16_t maxTimeToSearch)
   {
-    DebugBLE_println(F("detect I-Beacons"));
+    DebugBLE_println(F("detect iBeacons"));
 
     bool match = false;
 
@@ -266,6 +288,96 @@
 
     return match;
   }
+
+  /** -------------------------------------------------------------------------
+    * \fn     detectIBeaconUUID
+    * \brief  detects near iBeacons and returns data of the first found
+    *
+    * \param  iBeacon           iBeacon structure pointer (see struct in the header-file)
+    * \param  maxTimeToSearch   max time to search for iBeacons in ms
+    * \return true if an iBeacon was found
+    --------------------------------------------------------------------------- */
+    bool HM11::detectIBeaconUUID(iBeaconData_t *iBeacon, uint16_t maxTimeToSearch)
+    {
+      DebugBLE_println(F("detect iBeacons"));
+
+      bool match = false;
+
+      BLESerial_flush();
+
+      /* find near I-Beacons */
+      String response = getConf(F("DISI"));
+
+      /* if successful: continue reading to get the devices */
+      if (response.indexOf("OK+DISIS") >= 0)
+      {
+        DebugBLE_println(F("search for devices..."));
+        bool timeout = false;
+        uint32_t startMillis_BLE_total = millis();
+        String data = "";
+        iBeacon->accessAddress.reserve(8);
+        iBeacon->deviceAddress.reserve(12);
+        DebugBLE_print(F("getFreeRAM() = ")); DebugBLE_println(getFreeRAM());
+        int16_t freeBytes = getFreeRAM() - MIN_RAM;
+        data.reserve(freeBytes);  // reserve other Strings before this one!
+        DebugBLE_print(F("getFreeRAM() = ")); DebugBLE_println(getFreeRAM());
+        while(data.indexOf("OK+DISCE") < 0 && !timeout && freeBytes > 0)
+        {
+          if (BLESerial_available() > 0)
+          {
+            data.concat(String(char(BLESerial_read())));
+            freeBytes--;
+          }
+
+          if ((millis() - startMillis_BLE_total) >= maxTimeToSearch)
+          {
+            timeout = true;
+            DebugBLE_println(F("timeouted!"));
+          }
+        }
+        DebugBLE_print(F("dt data =\t")); DebugBLE_print((millis() - startMillis_BLE_total)); DebugBLE_println(F("ms"));
+        DebugBLE_print(F("data =\t\t")); DebugBLE_println(data);
+
+        /* HW reset to prevent the "AT+DISCE" */
+        if (timeout) hwResetBLE();
+
+        /* get total device count */
+        uint16_t j = 0;
+        byte deviceCounter;
+        for(deviceCounter = 0; data.indexOf("OK+DISC:", j) >= 0; deviceCounter++)
+        {
+          j = data.indexOf("OK+DISC:", j) + DEFAULT_RESPONSE_LENGTH;
+        }
+        DebugBLE_print(deviceCounter); DebugBLE_println(F(" device(s) found"));
+
+        /* check for a UUID match */
+        DebugBLE_print(F("uuidHex =\t")); DebugBLE_println(iBeacon->uuid);
+        if (data.indexOf(iBeacon->uuid) >= 0)
+        {
+          DebugBLE_println(F("match!"));
+          match = true;
+
+          /* process data */
+          uint16_t indexMatch = data.indexOf(iBeacon->uuid) - 9;
+          iBeacon->accessAddress = data.substring(indexMatch, indexMatch+8);
+          iBeacon->deviceAddress = data.substring(indexMatch+53, indexMatch+65);
+          iBeacon->marjor        = hexStringToByte(data.substring(indexMatch+42, indexMatch+44)) << 8;
+          iBeacon->marjor       |= hexStringToByte(data.substring(indexMatch+44, indexMatch+46));
+          iBeacon->minor         = hexStringToByte(data.substring(indexMatch+46, indexMatch+48)) << 8;
+          iBeacon->minor        |= hexStringToByte(data.substring(indexMatch+48, indexMatch+50));
+          iBeacon->txPower       = hexStringToByte(data.substring(indexMatch+67, indexMatch+68)) << 8;
+          iBeacon->txPower      |= hexStringToByte(data.substring(indexMatch+68, indexMatch+70));
+          iBeacon->txPower      *= -1;
+        }
+        else
+        {
+          DebugBLE_println(F("no match"));
+        };
+      }
+      DebugBLE_print(F("getFreeRAM() = ")); DebugBLE_println(getFreeRAM());  // make sure its the same as at the beginning of the function
+
+      return match;
+    }
 
   //TODO: implement detectIBeacons() (plural)
 
@@ -462,44 +574,48 @@
   {
     bool successful = true;
     uint32_t currentBaudrate = getBaudrate();
-    DebugBLE_print(F("currentBaudrate = ")); DebugBLE_println(String(currentBaudrate));
+    DebugBLE_print(F("currentBaudrate = ")); DebugBLE_println(currentBaudrate);
     DebugBLE_println("");
 
-    if ((currentBaudrate != 0) && (currentBaudrate != baudrate_))
+    if (currentBaudrate != 0)
     {
-      /* set baudrate */
-      DebugBLE_println(F("set new baudrate..."));
-      if (currentBaudrate != BAUDRATE0) renewBLE();
-
-      BLESerial_begin(DEFAULT_BAUDRATE);
-      while(!BLESerial_ready());
-
-      switch(baudrate_)
+      if (currentBaudrate != baudrate_)
       {
-        case BAUDRATE0: setConf(F("BAUD0")); break;
-        case BAUDRATE1: setConf(F("BAUD1")); break;
-        case BAUDRATE2: setConf(F("BAUD2")); break;
-        case BAUDRATE3: setConf(F("BAUD3")); break;
-        case BAUDRATE4: setConf(F("BAUD4")); break;
-        default: //handleError("invalid baudrate!");
+        /* set baudrate */
+        DebugBLE_println(F("set new baudrate..."));
+        if (currentBaudrate != BAUDRATE0) renewBLE();
+
+        BLESerial_begin(DEFAULT_BAUDRATE);
+        while(!BLESerial_ready());
+
+        switch(baudrate_)
         {
-          DebugBLE_println(F("invalid baudrate!"));
+          case BAUDRATE0: setConf(F("BAUD0")); break;
+          case BAUDRATE1: setConf(F("BAUD1")); break;
+          case BAUDRATE2: setConf(F("BAUD2")); break;
+          case BAUDRATE3: setConf(F("BAUD3")); break;
+          case BAUDRATE4: setConf(F("BAUD4")); break;
+          default: //handleError("invalid baudrate!");
+          {
+            DebugBLE_println(F("invalid baudrate!"));
+            successful = false;//while(1);
+          }
+        }
+
+        swResetBLE();
+
+        BLESerial_begin(baudrate_);
+        while(!BLESerial_ready());
+
+        /* check if setting the baudrate failed */
+        if (getConf(F("BAUD")).indexOf("OK") < 0) //handleError("set baudrate failed!");
+        {
+          DebugBLE_println(F("set baudrate failed!"));
           successful = false;//while(1);
         }
       }
-
-      swResetBLE();
-
-      BLESerial_begin(baudrate_);
-      while(!BLESerial_ready());
-
-      /* check if setting the baudrate failed */
-      if (getConf(F("BAUD")).indexOf("OK") < 0) //handleError("set baudrate failed!");
-      {
-        DebugBLE_println(F("set baudrate failed!"));
-        successful = false;//while(1);
-      }
     }
+    else successful = false;
 
     return successful;
   }
@@ -533,7 +649,7 @@
     if (i >= sizeof(baudratesArray)/sizeof(baudrate_t))
     {
       //handleError(F("determining the current baudrate of the BLE failed!"));
-      DebugBLE_println(F("determining the current baudrate of the BLE failed!"));
+      DebugBLE_println(F("determining the baudrate failed!"));
       baudratesArray[i-1] = baudrate_t(0);//while(1);
     }
 
@@ -570,7 +686,7 @@
         #ifdef DEBUG_BLE
           DebugBLE_print(F("got:\t\t")); DebugBLE_println(response);
         #else
-          delayMicroseconds(100);
+          delay(1); // >= 1ms
         #endif
       }
 

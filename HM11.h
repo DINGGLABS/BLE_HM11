@@ -28,8 +28,6 @@
 #include <Arduino.h>
 
 /* ==================== Global module constant declaration ================== */
-//#define DEBUG_BLE                     //blup: define to activate the Serial Debug prints
-#define DEBUG_BLE_BAUDRATE    115200    // in Baud
 
 /* ========================= Global macro declaration ======================= */
 /* port manipulation makros */
@@ -44,14 +42,6 @@
 #endif
 #ifndef getBit
   #define getBit(reg, bit) ((_SFR_BYTE(reg) & _BV(bit)) != 0)
-#endif
-
-#ifdef DEBUG_BLE
-  #define DebugBLE_print(...)     Serial.print(__VA_ARGS__)
-  #define DebugBLE_println(...)   Serial.println(__VA_ARGS__)
-#else
-  #define DebugBLE_print(...)
-  #define DebugBLE_println(...)
 #endif
 
 /* ============================ Class declaration =========================== */
@@ -116,7 +106,8 @@ public:
   bool isEnabled();
   void setupAsIBeacon(iBeaconData_t *iBeacon);  // necessaray: name, uuid, marjor, minor, interv
   void setupAsIBeaconDetector();
-  bool detectIBeacon(iBeaconData_t *iBeacon, uint16_t maxTimeToSearch = DEFAULT_DETECTION_TIME);  // necessary: uuid, marjor and minor (you want to search for)
+  bool detectIBeacon(iBeaconData_t *iBeacon, uint16_t maxTimeToSearch = DEFAULT_DETECTION_TIME);      // necessary: uuid, marjor and minor (you want to search for)
+  bool detectIBeaconUUID(iBeaconData_t *iBeacon, uint16_t maxTimeToSearch = DEFAULT_DETECTION_TIME);  // necessary: uuid (you want to search for)
   void forceRenew();  // try this if you can not communicate with the BLE-module anymore
 
   /* Public static member functions */
