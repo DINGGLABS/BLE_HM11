@@ -108,6 +108,18 @@ public:
   void setupAsIBeaconDetector();
   bool detectIBeacon(iBeaconData_t *iBeacon, uint16_t maxTimeToSearch = DEFAULT_DETECTION_TIME);      // necessary: uuid, marjor and minor (you want to search for)
   bool detectIBeaconUUID(iBeaconData_t *iBeacon, uint16_t maxTimeToSearch = DEFAULT_DETECTION_TIME);  // necessary: uuid (you want to search for)
+  /* Example response:
+    4C000215 – [P0] Company ID
+    0005000100001000800000805F9B0131 – [P1] UUID
+    00014667C3 – [P2] String Containing:
+        0001 - Major ID
+        4667 – Minor ID containing
+        46 - Humidity (hex)
+        67 - Temperature (hex)
+        C3 – RSSI (from device)
+    00A0500B1710 – [P3] MAC Address
+    -078 – [P4] RSSI (dBm)
+  */
   void forceRenew();  // try this if you can not communicate with the BLE-module anymore
 
   /* Public static member functions */
@@ -119,8 +131,8 @@ private:
   static const baudrate_t DEFAULT_BAUDRATE         = BAUDRATE0;
   static const uint8_t DEFAULT_RESPONSE_LENGTH     = 8;          // in characters
   static const uint16_t COMMAND_TIMEOUT_TIME       = 100;        // in ms (discovered empirically)
-  static const uint16_t DELAY_AFTER_HW_RESET_BLE   = 300;        // in ms (discovered empirically)
-  static const uint16_t DELAY_AFTER_SW_RESET_BLE   = 900;        // in ms (discovered empirically)
+  static const uint16_t DELAY_AFTER_HW_RESET_BLE   = 500;//blup 300;        // in ms (discovered empirically)
+  static const uint16_t DELAY_AFTER_SW_RESET_BLE   = 1000;//blup 900;        // in ms (discovered empirically)
 
   // I-Beacon detector
   static const uint16_t DEFAULT_DETECTION_TIME     = 5000;       // in ms
