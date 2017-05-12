@@ -11,18 +11,18 @@
 #include "HM11.h"
 
 /* ======================= Module constant declaration ====================== */
-// #define DEBUG_BLE                     //blup: define to activate the Serial Debug prints
+#define DEBUG_BLE                     //blup: define to activate the Serial Debug prints
 #define DEBUG_BLE_PIN         6         // Arduino 6 = PD6
 #define DEBUG_BLE_BAUDRATE    115200    // in Baud
 
 /* ======================== Private macro declaration ======================= */
 #ifdef DEBUG_BLE
-  #include <SoftwareSerial2.h>
-  // #define DebugBLE_print(...)     Serial.print(__VA_ARGS__)
-  // #define DebugBLE_println(...)   Serial.println(__VA_ARGS__)
-  #define DebugBLE_print(...)     DebugBLE.print(__VA_ARGS__)
-  #define DebugBLE_println(...)   DebugBLE.println(__VA_ARGS__)
-  SoftwareSerial2 DebugBLE(-1, DEBUG_BLE_PIN);  //blup: comment for OXOcard
+  // #include <SoftwareSerial2.h>
+  #define DebugBLE_print(...)     Serial.print(__VA_ARGS__)
+  #define DebugBLE_println(...)   Serial.println(__VA_ARGS__)
+  // #define DebugBLE_print(...)     DebugBLE.print(__VA_ARGS__)
+  // #define DebugBLE_println(...)   DebugBLE.println(__VA_ARGS__)
+  // SoftwareSerial2 DebugBLE(-1, DEBUG_BLE_PIN);  //blup: comment for OXOcard
 #else
   #define DebugBLE_print(...)
   #define DebugBLE_println(...)
@@ -41,16 +41,16 @@
   bool HM11::begin(uint32_t baudrate)
   {
     #ifdef DEBUG_BLE
-      //Serial.begin(DEBUG_BLE_BAUDRATE);
-      //while(!Serial);
-      DebugBLE.begin(DEBUG_BLE_BAUDRATE); //blup
-      while(!DebugBLE); //blup
+      Serial.begin(DEBUG_BLE_BAUDRATE);
+      while(!Serial);
+      // DebugBLE.begin(DEBUG_BLE_BAUDRATE); //blup
+      // while(!DebugBLE); //blup
     #endif
 
     baudrate_ = baudrate_t(baudrate);
     enable();
-    renewBLE();    // reset everything old
-    return setBaudrate();
+    sendDirectBLECommand(F("AT"));  // warm up
+    return renewBLE();    // reset everything old
   }
 
 /** -------------------------------------------------------------------------
@@ -461,6 +461,41 @@
   // }
 
 /** -------------------------------------------------------------------------
+  * \fn     getMacAddress
+  * \brief  read the mac address of the BLE module
+  *
+  * \return mac address
+  --------------------------------------------------------------------------- */
+  String HM11::getMacAddress()
+  {
+    String macAddr = F("error");
+    macAddr.reserve(12);
+    String response = getConf(F("ADDR"));
+    if (response.startsWith(F("OK")))
+    {
+      response = response.substring(8);   // OK+ADDR:MACAddress
+      if (response.length() == 12) macAddr = response;
+    }
+    return macAddr;
+  }
+
+/** -------------------------------------------------------------------------
+  * \fn     connectToMacAddress
+  * \brief  connect to given mac Address
+  *
+  * \param  macAddr mac address
+  * \param  master  connect as master (true) or slave (false)
+  * \return None
+  --------------------------------------------------------------------------- */
+  void HM11::connectToMacAddress(String macAddr, bool master)
+  {
+    setConf("ROLE" + String(master));
+    setConf(F("IMME1"));      // module work type (1 = responds only to AT-commands)
+    swResetBLE(); //blup: nötig?
+    setConf("CON" + macAddr);
+  }
+
+/** -------------------------------------------------------------------------
   * \fn     forceRenew
   * \brief  try this if you can not communicate with the BLE module anymore
   --------------------------------------------------------------------------- */
@@ -534,12 +569,14 @@
 /** -------------------------------------------------------------------------
   * \fn     renewBLE
   * \brief  restore BLE module to factory default
+  *
+  * \return true if it succeeded
   --------------------------------------------------------------------------- */
-  void HM11::renewBLE()
+  bool HM11::renewBLE()
   {
     setConf(F("RENEW"));              // restore all setup to factory default
     delay(DELAY_AFTER_SW_RESET_BLE);  // a long delay is necessary
-    setBaudrate();
+    return setBaudrate();
   }
 
 /** -------------------------------------------------------------------------
@@ -700,7 +737,8 @@
 
         /* special delay (necessary! -> wait some time to let the Serial buffer be filled) */
         #ifdef DEBUG_BLE
-          DebugBLE_print(F("got:\t\t")); DebugBLE_println(response);
+          //DebugBLE_print(F("got:\t\t")); DebugBLE_println(response);
+          delay(1); // >= 1ms
         #else
           delay(1); // >= 1ms
         #endif

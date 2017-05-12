@@ -120,6 +120,8 @@ public:
     00A0500B1710 – [P3] MAC Address
     -078 – [P4] RSSI (dBm)
   */
+  String getMacAddress();
+  void connectToMacAddress(String macAddr, bool master);
   void forceRenew();  // try this if you can not communicate with the BLE-module anymore
 
   /* Public static member functions */
@@ -156,7 +158,7 @@ private:
   /* Private member functions */
   void hwResetBLE();
   void swResetBLE();
-  void renewBLE();
+  bool renewBLE();
   bool setConf(String cmd);
   bool setBaudrate(baudrate_t baudrate);
   bool setBaudrate();
