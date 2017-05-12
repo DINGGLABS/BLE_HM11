@@ -11,19 +11,21 @@
 #include "HM11.h"
 
 /* ======================= Module constant declaration ====================== */
-#define DEBUG_BLE                     //blup: define to activate the Serial Debug prints
+// #define DEBUG_BLE                     //blup: define to activate the Serial Debug prints
 #define DEBUG_BLE_PIN         6         // Arduino 6 = PD6
 #define DEBUG_BLE_BAUDRATE    115200    // in Baud
 
 /* ======================== Private macro declaration ======================= */
 #ifdef DEBUG_BLE
   // #include <SoftwareSerial2.h>
+  #define DebugBLE_begin(...)     Serial.begin(__VA_ARGS__)
   #define DebugBLE_print(...)     Serial.print(__VA_ARGS__)
   #define DebugBLE_println(...)   Serial.println(__VA_ARGS__)
   // #define DebugBLE_print(...)     DebugBLE.print(__VA_ARGS__)
   // #define DebugBLE_println(...)   DebugBLE.println(__VA_ARGS__)
   // SoftwareSerial2 DebugBLE(-1, DEBUG_BLE_PIN);  //blup: comment for OXOcard
 #else
+  #define DebugBLE_begin(...)
   #define DebugBLE_print(...)
   #define DebugBLE_println(...)
 #endif
@@ -40,13 +42,7 @@
   --------------------------------------------------------------------------- */
   bool HM11::begin(uint32_t baudrate)
   {
-    #ifdef DEBUG_BLE
-      Serial.begin(DEBUG_BLE_BAUDRATE);
-      while(!Serial);
-      // DebugBLE.begin(DEBUG_BLE_BAUDRATE); //blup
-      // while(!DebugBLE); //blup
-    #endif
-
+    Serial_begin(DEBUG_BLE_BAUDRATE);
     baudrate_ = baudrate_t(baudrate);
     enable();
     sendDirectBLECommand(F("AT"));  // warm up
