@@ -42,7 +42,7 @@
   --------------------------------------------------------------------------- */
   bool HM11::begin(uint32_t baudrate)
   {
-    Serial_begin(DEBUG_BLE_BAUDRATE);
+    DebugBLE_begin(DEBUG_BLE_BAUDRATE);
     baudrate_ = baudrate_t(baudrate);
     enable();
     sendDirectBLECommand(F("AT"));  // warm up
