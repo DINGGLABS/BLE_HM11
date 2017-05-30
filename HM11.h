@@ -122,6 +122,9 @@ public:
   */
   String getMacAddress();
   void connectToMacAddress(String macAddr, bool master);
+  char readChar();
+  bool handshaking(bool master, char handshakeChar = 'H');
+
   void forceRenew();  // try this if you can not communicate with the BLE-module anymore
 
   /* Public static member functions */

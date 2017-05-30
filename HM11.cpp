@@ -70,7 +70,7 @@
     clearBit(*enPort_, enPin_);     // enable BLE
     BLESerial_begin(baudrate_);
     while(!BLESerial_ready());
-    while(BLESerial_available()) (void)BLESerial_read();  // empty tx-buffer
+    while(BLESerial_available()) BLESerial_read();  // empty tx-buffer
     hwResetBLE();
   }
 
@@ -110,8 +110,6 @@
   {
     DebugBLE_println(F("setup as iBeacon"));
 
-    bool uuidValid = true;
-
     /* control if given parameters are valid */
     if ((iBeacon->name).length() > 12)  {DebugBLE_println(F("name ist too long!")); return;}
     if ((iBeacon->uuid).length() != 32) {DebugBLE_println(F("UUID is invalid!")); return;}
@@ -124,7 +122,9 @@
     String minorHex  = byteToHexString(uint8_t((iBeacon->minor  & 0xFF00) >> 8)) + byteToHexString(uint8_t(iBeacon->minor));
 
     /* I-Beacon setup */
-    uint32_t t = millis();
+    #ifdef DEBUG_BLE
+      uint32_t t = millis();
+    #endif
     //renewBLE();    // necessary!
     swResetBLE();
     setConf("MARJ0x" + marjorHex);
@@ -258,14 +258,14 @@
 
 
       /* check for a UUID, marjor and minor match */
-      uint16_t indexUUID = data.indexOf(iBeacon->uuid);
+      int16_t indexUUID = data.indexOf(iBeacon->uuid);
       if ((indexUUID >= 0) && (data.indexOf(marjorHex, indexUUID) >= 0) && (data.indexOf(minorHex, indexUUID) >= 0))
       {
         DebugBLE_println(F("match!"));
         match = true;
 
         /* process data */
-        uint16_t indexMatch = data.indexOf(iBeacon->uuid) - 9;
+        int16_t indexMatch = data.indexOf(iBeacon->uuid) - 9;
         iBeacon->accessAddress = data.substring(indexMatch, indexMatch+8);
         iBeacon->deviceAddress = data.substring(indexMatch+53, indexMatch+65);
         iBeacon->marjor        = hexStringToByte(data.substring(indexMatch+42, indexMatch+44)) << 8;
@@ -370,7 +370,7 @@
         DebugBLE_println(F("match!"));
 
         /* process data */
-        uint16_t indexMatch = data.indexOf(iBeacon->uuid) - 9;
+        int16_t indexMatch = data.indexOf(iBeacon->uuid) - 9;
         iBeacon->accessAddress = data.substring(indexMatch, indexMatch+8);
         iBeacon->deviceAddress = data.substring(indexMatch+53, indexMatch+65);
         iBeacon->marjor        = hexStringToByte(data.substring(indexMatch+42, indexMatch+44)) << 8;
@@ -398,7 +398,7 @@
      // String deviceString[MAX_NUMBER_IBEACONS];
      // for (deviceCounter = 0; deviceCounter < (data.length()/NUMBER_CHARS_PER_DEVICE) && (deviceCounter < MAX_NUMBER_IBEACONS); deviceCounter++)
      // {
-     //   unsigned int deviceIndex = deviceCounter * NUMBER_CHARS_PER_DEVICE;
+     //   uint16_t deviceIndex = deviceCounter * NUMBER_CHARS_PER_DEVICE;
      //   deviceString[deviceCounter].reserve(NUMBER_CHARS_PER_DEVICE);  // reserve memory to prevent fragmentation
      //   deviceString[deviceCounter] = data.substring(deviceIndex, deviceIndex + NUMBER_CHARS_PER_DEVICE);
      //   DebugBLE_print(F("device_")); DebugBLE_print(deviceCounter); DebugBLE_print(F(" =\t")); DebugBLE_println(deviceString[deviceCounter]);
@@ -451,7 +451,7 @@
   //  }
   //  BLESerial_begin(BAUDRATE0);
   //  BLESerial_print(wakeUpStr);
-  //  (void)BLESerial_readString();
+  //  BLESerial_readString();
   //  BLESerial_begin(baudrate_);
   //  BLESerial_flush();
   // }
@@ -492,6 +492,82 @@
   }
 
 /** -------------------------------------------------------------------------
+  * \fn     readChar
+  * \brief  reads and converts a character from BLESerial
+  *
+  * \param  None
+  * \return character
+  --------------------------------------------------------------------------- */
+  char HM11::readChar()
+  {
+    static uint8_t lastB = 0;
+    uint8_t b = BLESerial_read();
+    if (lastB == 13 && b == 225) b = 10; // handle cr/lf
+    if (b >= 128) b -= 128;
+    lastB = b;
+    return char(b);
+  }
+
+/** -------------------------------------------------------------------------
+  * \fn     handshaking
+  * \brief  handshaking to sync a P2P connection
+  *
+  * \param  master          sync as master (true) or slave (false)
+  * \param  handshakeChar   random handshake character
+  * \return true if it succeeded
+  --------------------------------------------------------------------------- */
+  bool HM11::handshaking(bool master, char handshakeChar)
+  {
+    const uint16_t timeout = 10000;
+    const uint16_t dtMax = 100;
+    uint32_t msTimeout = millis();
+
+    /* empty the recive buffer */
+    while(BLESerial_available())
+    {
+      BLESerial_read();
+      if ((millis() - msTimeout) >= timeout) return false;
+    }
+    msTimeout = millis();
+
+    /* handshaking */
+    uint32_t ms = millis();
+    if (master)
+    {
+      DebugBLE_print(F("wait for handshake char..."));
+      while(BLESerial_read() != handshakeChar)
+      {
+        ms = millis();
+
+        DebugBLE_print(F("."));
+        if ((millis() - msTimeout) >= timeout) return false;
+        while(!BLESerial_available() && (millis() - ms) < dtMax);
+      }
+      BLESerial_print(String(handshakeChar));
+      delay(dtMax);
+    }
+    else
+    {
+      DebugBLE_print(F("send handshake char..."));
+      while(BLESerial_read() != handshakeChar)
+      {
+        BLESerial_print(String(handshakeChar));
+        ms = millis();
+
+        DebugBLE_print(F("."));
+        if ((millis() - msTimeout) >= timeout) return false;
+        while(!BLESerial_available() && (millis() - ms) < dtMax);
+      }
+      uint16_t dt = millis() - ms;
+      // DebugBLE_print(F("dt = ")); DebugBLE_println(dt);
+      delay(dtMax - dt/2);
+    }
+    DebugBLE_println();
+    DebugBLE_println(F("handshake succeeded!"));
+    return true;
+  }
+
+/** -------------------------------------------------------------------------
   * \fn     forceRenew
   * \brief  try this if you can not communicate with the BLE module anymore
   --------------------------------------------------------------------------- */
@@ -518,7 +594,7 @@
   * \param  hex   hex byte
   * \return Strig with two HEX characters
   --------------------------------------------------------------------------- */
-  static String HM11::byteToHexString(uint8_t hex)
+  String HM11::byteToHexString(uint8_t hex)
   {
     String str;
     str.reserve(2);
@@ -534,7 +610,7 @@
   * \param  str   hex String
   * \return hex byte
   --------------------------------------------------------------------------- */
-  static uint8_t HM11::hexStringToByte(String str)
+  uint8_t HM11::hexStringToByte(String str)
   {
     return ((hexCharacterToNibble(str[0]) << 4) & 0xF0) | (hexCharacterToNibble(str[1]) & 0x0F);
   }
@@ -770,7 +846,7 @@
   *
   * \return free memory between heap and stack
   --------------------------------------------------------------------------- */
-  static int16_t HM11::getFreeRAM()
+  int16_t HM11::getFreeRAM()
   {
     extern int16_t __heap_start, *__brkval;
     int16_t v;
@@ -784,7 +860,7 @@
   * \param  nibble   nibble (as byte)
   * \return hex character
   --------------------------------------------------------------------------- */
-  static char HM11::nibbleToHexCharacter(uint8_t nibble)
+  char HM11::nibbleToHexCharacter(uint8_t nibble)
   {
     return (nibble > 9) ? (char)(nibble + 'A' - 10) : (char)(nibble + '0');
   }
@@ -796,7 +872,7 @@
   * \param  hex   hex character
   * \return nibble (as byte)
   --------------------------------------------------------------------------- */
-  static uint8_t HM11::hexCharacterToNibble(char hex)
+  uint8_t HM11::hexCharacterToNibble(char hex)
   {
     return (hex >= 'A') ? (uint8_t)(hex - 'A' + 10) : (uint8_t)(hex - '0');
   }
