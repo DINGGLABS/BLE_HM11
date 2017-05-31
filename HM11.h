@@ -51,7 +51,7 @@ public:
   /* Public member typedefs */
   typedef enum : uint32_t
   {
-    BAUDRATE0 = 9600,
+    BAUDRATE0 = 9600,   // default
     BAUDRATE1 = 19200,
     BAUDRATE2 = 38400,
     BAUDRATE3 = 57600,
@@ -69,8 +69,16 @@ public:
     INTERV_760MS  = 6,
     INTERV_850MS  = 7,
     INTERV_1020MS = 8,
-    INTERV_1285MS = 9
+    INTERV_1285MS = 9   // default
   } advertInterval_t;
+
+  typedef enum : uint8_t
+  {
+    POWER_N23DBM  = 0,
+    POWER_N6DBM   = 1,
+    POWER_0DBM    = 2,  // default
+    POWER_6DBM    = 3
+  } txPower_t;
 
   typedef struct
   {
@@ -104,6 +112,8 @@ public:
   void enable();
   void disable();
   bool isEnabled();
+  void setTxPower(txPower_t txPower);
+  txPower_t getTxPower();
   void setupAsIBeacon(iBeaconData_t *iBeacon);  // necessaray: name, uuid, marjor, minor, interv
   void setupAsIBeaconDetector();
   bool detectIBeacon(iBeaconData_t *iBeacon, uint16_t maxTimeToSearch = DEFAULT_DETECTION_TIME);      // necessary: uuid, marjor and minor (you want to search for)

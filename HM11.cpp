@@ -100,6 +100,30 @@
   }
 
 /** -------------------------------------------------------------------------
+  * \fn     setTxPower
+  * \brief  set the transmission power
+  *
+  * \param  txPower  transmission power (see enumerator in the header-file)
+  * \return None
+  --------------------------------------------------------------------------- */
+  void HM11::setTxPower(txPower_t txPower)
+  {
+    setConf("POWE" + String(txPower));
+  }
+
+/** -------------------------------------------------------------------------
+  * \fn     getTxPower
+  * \brief  get the transmission power
+  *
+  * \param  None
+  * \return transmission power (see enumerator in the header-file)
+  --------------------------------------------------------------------------- */
+  HM11::txPower_t HM11::getTxPower()
+  {
+    return txPower_t(getConf(F("POWE")).substring(7).toInt());  // "OK+Set:2"
+  }
+
+/** -------------------------------------------------------------------------
   * \fn     setupAsIBeacon
   * \brief  setup module as iBeacon with given data
   *
@@ -143,7 +167,7 @@
     swResetBLE();
 
     /* show BLT address */
-    getConf("ADDR");
+    getConf(F("ADDR"));
 
     DebugBLE_print(F("dt setup BLE =\t")); DebugBLE_print(String(millis() - t)); DebugBLE_println(F("ms"));
     DebugBLE_println("");
