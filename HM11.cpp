@@ -11,7 +11,7 @@
 #include "HM11.h"
 
 /* ======================= Module constant declaration ====================== */
-// #define DEBUG_BLE                     //blup: define to activate the Serial Debug prints
+// #define DEBUG_BLE                    //blup: define to activate the Serial Debug prints
 #define DEBUG_BLE_PIN         6         // Arduino 6 = PD6
 #define DEBUG_BLE_BAUDRATE    115200    // in Baud
 
@@ -45,7 +45,7 @@
     DebugBLE_begin(DEBUG_BLE_BAUDRATE);
     baudrate_ = baudrate_t(baudrate);
     enable();
-    return renewBLE();    // reset everything old
+    return renewBLE();    // reset everything
   }
 
 /** -------------------------------------------------------------------------
@@ -71,8 +71,6 @@
     while(!BLESerial_ready());
     while(BLESerial_available()) BLESerial_read();  // empty tx-buffer
     hwResetBLE();
-
-    sendDirectBLECommand(F("AT"));  // warm up
   }
 
 /** -------------------------------------------------------------------------
@@ -150,8 +148,7 @@
     #ifdef DEBUG_BLE
       uint32_t t = millis();
     #endif
-    //renewBLE();    // necessary!
-    swResetBLE();
+    //swResetBLE(); // not necessary
     setConf("MARJ0x" + marjorHex);
     setConf("MINO0x" + minorHex);
     setConf("IBE0" + iBeacon->uuid.substring(0, 8));
@@ -165,10 +162,12 @@
     setConf(F("DELO2"));     // iBeacon deploy mode (2 = broadcast only)
     setConf(F("PWRM1"));     // auto sleep OFF
     //setConf("PWRM0");        // auto sleep ON   //blup: this should be used -> to send new AT-commands implement wakeUpBLE
-    swResetBLE();
+    //swResetBLE(); // not necessary
 
-    /* show BLT address */
-    getConf(F("ADDR"));
+    #ifdef DEBUG_BLE
+      /* show BLT address */
+      getConf(F("ADDR"));
+    #endif
 
     DebugBLE_print(F("dt setup BLE =\t")); DebugBLE_print(String(millis() - t)); DebugBLE_println(F("ms"));
     DebugBLE_println("");
@@ -252,7 +251,11 @@
       DebugBLE_print(F("data =\t\t")); DebugBLE_println(data);
 
       /* HW reset to prevent the "AT+DISCE" */
-      if (timeout) hwResetBLE();
+      if (timeout)
+      {
+        hwResetBLE();
+        while(BLESerial_available()) BLESerial_read();  //BLESerial_flush();
+      }
 
       /* get total device count */
       uint16_t j = 0;
@@ -385,7 +388,7 @@
       if (timeout)
       {
         hwResetBLE();
-        while(BLESerial_available()) void(BLESerial_read());  //BLESerial_flush();
+        while(BLESerial_available()) BLESerial_read();  //BLESerial_flush();
       }
 
       /* check for a UUID match */
@@ -510,9 +513,9 @@
   --------------------------------------------------------------------------- */
   void HM11::connectToMacAddress(String macAddr, bool master)
   {
-    setConf("ROLE" + String(master));
     setConf(F("IMME1"));      // module work type (1 = responds only to AT-commands)
-    swResetBLE(); //blup: nötig?
+    setConf("ROLE" + String(master));
+    swResetBLE();
     setConf("CON" + macAddr);
   }
 
@@ -606,7 +609,7 @@
       BLESerial_begin(baudratesArray[i]);
       while(!BLESerial_ready());
       for (uint8_t n = 0; n < 5; n++) sendDirectBLECommand(F("AT"));
-      for (uint8_t n = 0; (n < 5) && !setConf(F("RENEW")); n++) delay(DELAY_AFTER_SW_RESET_BLE);
+      for (uint8_t n = 0; (n < 5) && !setConf(F("RENEW")); n++) delay(MAX_DELAY_AFTER_SW_RESET_BLE);
     }
     disable();
   }
@@ -650,7 +653,8 @@
     clearBit(*rstPort_, rstPin_);
     delay(5);
     setBit(*rstPort_, rstPin_);
-    delay(DELAY_AFTER_HW_RESET_BLE);   // discovered empirically
+    uint32_t ms = millis();
+    while(!sendDirectBLECommand(F("AT")).startsWith(F("OK")) && ((millis() - ms) < MAX_DELAY_AFTER_HW_RESET_BLE));
   }
 
 /** -------------------------------------------------------------------------
@@ -660,7 +664,11 @@
   void HM11::swResetBLE()
   {
     setConf(F("RESET"));
-    delay(DELAY_AFTER_SW_RESET_BLE);  // a long delay is necessary
+    uint32_t ms = millis();
+    /* first wait until RESET starts to work (~582ms)... */
+    while(sendDirectBLECommand(F("AT")).startsWith(F("OK")) && ((millis() - ms) < MAX_DELAY_AFTER_SW_RESET_BLE));
+    /* then wait until the BLE module is ready again (~120ms) */
+    while(!sendDirectBLECommand(F("AT")).startsWith(F("OK")) && ((millis() - ms) < MAX_DELAY_AFTER_SW_RESET_BLE));
   }
 
 /** -------------------------------------------------------------------------
@@ -672,7 +680,13 @@
   bool HM11::renewBLE()
   {
     setConf(F("RENEW"));              // restore all setup to factory default
-    delay(DELAY_AFTER_SW_RESET_BLE);  // a long delay is necessary
+    uint32_t ms = millis();
+    /* first wait until RENEW starts to work (~327ms)... */
+    while(!sendDirectBLECommand(F("AT")).startsWith(F("OK")) && ((millis() - ms) < MAX_DELAY_AFTER_SW_RESET_BLE));
+    /* then wait while the BLE module is busy (~250ms)... */
+    while(sendDirectBLECommand(F("AT")).startsWith(F("OK")) && ((millis() - ms) < MAX_DELAY_AFTER_SW_RESET_BLE));
+    /* then wait until the BLE module is ready again (~230ms) */
+    while(!sendDirectBLECommand(F("AT")).startsWith(F("OK")) && ((millis() - ms) < MAX_DELAY_AFTER_SW_RESET_BLE));
     return setBaudrate();
   }
 

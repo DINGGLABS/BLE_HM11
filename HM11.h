@@ -143,17 +143,17 @@ public:
 
 private:
   /*  Private constant declerations (static) */
-  static const baudrate_t DEFAULT_BAUDRATE         = BAUDRATE0;
-  static const uint8_t DEFAULT_RESPONSE_LENGTH     = 8;          // in characters
-  static const uint16_t COMMAND_TIMEOUT_TIME       = 100;        // in ms (discovered empirically)
-  static const uint16_t DELAY_AFTER_HW_RESET_BLE   = 500;//blup 300;        // in ms (discovered empirically)
-  static const uint16_t DELAY_AFTER_SW_RESET_BLE   = 1000;//blup 900;        // in ms (discovered empirically)
+  static const baudrate_t DEFAULT_BAUDRATE           = BAUDRATE0;
+  static const uint8_t DEFAULT_RESPONSE_LENGTH       = 8;         // in characters
+  static const uint16_t COMMAND_TIMEOUT_TIME         = 100;       // in ms (discovered empirically)
+  static const uint16_t MAX_DELAY_AFTER_HW_RESET_BLE = 500;       // in ms (discovered empirically)
+  static const uint16_t MAX_DELAY_AFTER_SW_RESET_BLE = 1000;      // in ms (discovered empirically)
 
   // I-Beacon detector
-  static const uint16_t DEFAULT_DETECTION_TIME     = 5000;       // in ms
-  static const uint16_t MIN_RAM                    = 253;        // in bytes -> keep the RAM > 200 to prevent bugs!
-  //static const uint16_t MAX_NUMBER_IBEACONS        = 6;          // max = 6 (keep the RAM in minde!)
-  //static const uint16_t NUMBER_CHARS_PER_DEVICE    = 78;         // including the "OK+DISC:"
+  static const uint16_t DEFAULT_DETECTION_TIME     = 5000;        // in ms
+  static const uint16_t MIN_RAM                    = 253;         // in bytes -> keep the RAM > 200 to prevent bugs!
+  //static const uint16_t MAX_NUMBER_IBEACONS        = 6;           // max = 6 (keep the RAM in minde!)
+  //static const uint16_t NUMBER_CHARS_PER_DEVICE    = 78;          // including the "OK+DISC:"
 
   /* Private member data */
   volatile uint8_t *rxdPort_;
