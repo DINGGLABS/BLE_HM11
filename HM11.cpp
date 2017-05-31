@@ -45,7 +45,6 @@
     DebugBLE_begin(DEBUG_BLE_BAUDRATE);
     baudrate_ = baudrate_t(baudrate);
     enable();
-    sendDirectBLECommand(F("AT"));  // warm up
     return renewBLE();    // reset everything old
   }
 
@@ -72,6 +71,8 @@
     while(!BLESerial_ready());
     while(BLESerial_available()) BLESerial_read();  // empty tx-buffer
     hwResetBLE();
+
+    sendDirectBLECommand(F("AT"));  // warm up
   }
 
 /** -------------------------------------------------------------------------
@@ -83,8 +84,8 @@
     DebugBLE_println(F("disable BLE"));
     clearBit(*rstPort_, rstPin_);   // to prevent supply throug reset
     BLESerial_end();
-    clearBit(rxdPort_, rxd_);       // to prevent supply throug rxd
-    clearBit(txdPort_, txd_);       // to prevent supply throug txd
+    clearBit(*rxdPort_, rxd_);      // to prevent supply throug rxd
+    clearBit(*txdPort_, txd_);      // to prevent supply throug txd
     setBit(*enPort_, enPin_);       // disable BLE
   }
 
