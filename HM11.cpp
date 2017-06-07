@@ -15,12 +15,13 @@
 #define DEBUG_BLE_PIN         6         // Arduino 6 = PD6
 #define DEBUG_BLE_BAUDRATE    115200    // in Baud
 
-/* ======================== Private macro declaration ======================= */
+/* ======================== Module macro declaration ======================== */
 #ifdef DEBUG_BLE
   // #include <SoftwareSerial2.h>
   #define DebugBLE_begin(...)     Serial.begin(__VA_ARGS__)
   #define DebugBLE_print(...)     Serial.print(__VA_ARGS__)
   #define DebugBLE_println(...)   Serial.println(__VA_ARGS__)
+  // #define DebugBLE_begin(...)     DebugBLE.begin(__VA_ARGS__)
   // #define DebugBLE_print(...)     DebugBLE.print(__VA_ARGS__)
   // #define DebugBLE_println(...)   DebugBLE.println(__VA_ARGS__)
   // SoftwareSerial2 DebugBLE(-1, DEBUG_BLE_PIN);  //blup: comment for OXOcard
@@ -30,14 +31,14 @@
   #define DebugBLE_println(...)
 #endif
 
-/* ========================== Class instantiations ========================== */
+/* ====================== Module class instantiations ======================= */
 
 /* ======================== Public member Functions ========================= */
 /** -------------------------------------------------------------------------
   * \fn     begin
-  * \brief  init the HW
+  * \brief  enables and inits the HM11
   *
-  * \param  baudrate  baudrate (see enumerator in the header-file)
+  * \param  baudrate  baudrate (see enumerator in the header file)
   * \return true if setting the baudrate succeeded
   --------------------------------------------------------------------------- */
   bool HM11::begin(uint32_t baudrate)
@@ -50,16 +51,17 @@
 
 /** -------------------------------------------------------------------------
   * \fn     end
-  * \brief  deinit the HW
+  * \brief  deinits and disables the HM11
   --------------------------------------------------------------------------- */
   void HM11::end()
   {
+    baudrate_ = DEFAULT_BAUDRATE;
     disable();
   }
 
 /** -------------------------------------------------------------------------
   * \fn     enable
-  * \brief  enable the HW
+  * \brief  enables the HM11
   --------------------------------------------------------------------------- */
   void HM11::enable()
   {
@@ -75,7 +77,7 @@
 
 /** -------------------------------------------------------------------------
   * \fn     disable
-  * \brief  disable the HW
+  * \brief  disables the HM11
   --------------------------------------------------------------------------- */
   void HM11::disable()
   {
@@ -89,9 +91,9 @@
 
 /** -------------------------------------------------------------------------
   * \fn     isEnabled
-  * \brief  return the state of the HW
+  * \brief  return the enable state of the HM11
   *
-  * \return true if the HW is enabled
+  * \return true if the HM11 is enabled
   --------------------------------------------------------------------------- */
   bool HM11::isEnabled()
   {
@@ -100,9 +102,9 @@
 
 /** -------------------------------------------------------------------------
   * \fn     setTxPower
-  * \brief  set the transmission power
+  * \brief  sets the transmission power
   *
-  * \param  txPower  transmission power (see enumerator in the header-file)
+  * \param  txPower  transmission power (see enumerator in the header file)
   * \return None
   --------------------------------------------------------------------------- */
   void HM11::setTxPower(txPower_t txPower)
@@ -112,10 +114,10 @@
 
 /** -------------------------------------------------------------------------
   * \fn     getTxPower
-  * \brief  get the transmission power
+  * \brief  gets the transmission power
   *
   * \param  None
-  * \return transmission power (see enumerator in the header-file)
+  * \return transmission power (see enumerator in the header file)
   --------------------------------------------------------------------------- */
   HM11::txPower_t HM11::getTxPower()
   {
@@ -126,7 +128,7 @@
   * \fn     setupAsIBeacon
   * \brief  setup module as iBeacon with given data
   *
-  * \param  iBeacon  iBeacon structure pointer (see struct in the header-file)
+  * \param  iBeacon  iBeacon structure pointer (see struct in the header file)
   * \return None
   --------------------------------------------------------------------------- */
   void HM11::setupAsIBeacon(iBeaconData_t *iBeacon)
@@ -205,7 +207,7 @@
   * \fn     detectIBeacon
   * \brief  detects near iBeacons and returns data of the first found
   *
-  * \param  iBeacon           iBeacon structure pointer (see struct in the header-file)
+  * \param  iBeacon           iBeacon structure pointer (see struct in the header file)
   * \param  maxTimeToSearch   max time to search for iBeacons in ms
   * \return true if an iBeacon was found
   --------------------------------------------------------------------------- */
@@ -318,7 +320,7 @@
   * \fn     detectIBeaconUUID
   * \brief  detects near iBeacons and returns data of the first found
   *
-  * \param  iBeacon           iBeacon structure pointer (see struct in the header-file)
+  * \param  iBeacon           iBeacon structure pointer (see struct in the header file)
   * \param  maxTimeToSearch   max time to search for iBeacons in ms
   * \return true if an iBeacon was found
   --------------------------------------------------------------------------- */
@@ -486,7 +488,7 @@
 
 /** -------------------------------------------------------------------------
   * \fn     getMacAddress
-  * \brief  read the mac address of the BLE module
+  * \brief  reads the mac address of the BLE module
   *
   * \return mac address
   --------------------------------------------------------------------------- */
@@ -505,7 +507,7 @@
 
 /** -------------------------------------------------------------------------
   * \fn     connectToMacAddress
-  * \brief  connect to given mac Address
+  * \brief  connects to given mac Address
   *
   * \param  macAddr mac address
   * \param  master  connect as master (true) or slave (false)
@@ -614,7 +616,7 @@
     disable();
   }
 
-/* ==================== Public static member Functions ====================== */
+/* ======================== Public class Functions ========================== */
 /** -------------------------------------------------------------------------
   * \fn     byteToHexString
   * \brief  converts given hex byte to a String with two characters
@@ -646,7 +648,7 @@
 /* ======================= Private member Functions ========================= */
 /** -------------------------------------------------------------------------
   * \fn     hwResetBLE
-  * \brief  reset BLE module by HW
+  * \brief  resets BLE module by HW
   --------------------------------------------------------------------------- */
   void HM11::hwResetBLE()
   {
@@ -659,7 +661,7 @@
 
 /** -------------------------------------------------------------------------
   * \fn     swResetBLE
-  * \brief  reset BLE module by SW
+  * \brief  resets BLE module by SW
   --------------------------------------------------------------------------- */
   void HM11::swResetBLE()
   {
@@ -673,7 +675,7 @@
 
 /** -------------------------------------------------------------------------
   * \fn     renewBLE
-  * \brief  restore BLE module to factory default
+  * \brief  restores BLE module to factory default
   *
   * \return true if it succeeded
   --------------------------------------------------------------------------- */
@@ -692,7 +694,7 @@
 
 /** -------------------------------------------------------------------------
   * \fn     setConf
-  * \brief  configure BLE module by writing given AT command
+  * \brief  configures BLE module by writing given AT command
   *
   * \param  cmd  AT command
   * \return ture if it succeeded
@@ -705,7 +707,7 @@
 
 /** -------------------------------------------------------------------------
   * \fn     getConf
-  * \brief  get configured value of the BLE module with given AT command
+  * \brief  gets configured value of the BLE module with given AT command
   *
   * \param  cmd  AT command
   * \return configured value as a string
@@ -717,9 +719,9 @@
 
 /** -------------------------------------------------------------------------
   * \fn     setBaudrate
-  * \brief  set baudrtae of the BLE module
+  * \brief  sets baudrtae of the BLE module
   *
-  * \param  baudrate  baudrate (see enumerator in the header-file)
+  * \param  baudrate  baudrate (see enumerator in the header file)
   * \return true if it succeeded
   --------------------------------------------------------------------------- */
   bool HM11::setBaudrate(baudrate_t baudrate)
@@ -730,7 +732,7 @@
 
 /** -------------------------------------------------------------------------
   * \fn     setBaudrate
-  * \brief  set baudrtae of the BLE module
+  * \brief  sets baudrtae of the BLE module
   *
   * \return true if it succeeded
   --------------------------------------------------------------------------- */
@@ -786,9 +788,9 @@
 
 /** -------------------------------------------------------------------------
   * \fn     getBaudrate
-  * \brief  get baudrtae of the BLE module
+  * \brief  gets baudrtae of the BLE module
   *
-  * \return baudrate  baudrate (see enumerator in the header-file)
+  * \return baudrate (see enumerator in the header file)
   --------------------------------------------------------------------------- */
   uint32_t HM11::getBaudrate()
   {
@@ -878,7 +880,7 @@
     return response;
   }
 
-/* ==================== Private static member Functions ===================== */
+/* ======================= Private class Functions ========================== */
 /** -------------------------------------------------------------------------
   * \fn     getFreeRAM
   * \brief  returns the size in bytes between the heap and the stack

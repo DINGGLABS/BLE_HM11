@@ -52,7 +52,7 @@ public:
   //...
 
 private:
-  /*  Private constant declerations (static) */
+  /* Private constant declerations (static) */
   //...
 
   /* Private member data */

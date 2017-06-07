@@ -95,7 +95,7 @@ public:
   /* Public member data */
   //...
 
-  /* Constructor(s) and  Destructor*/
+  /* Constructor(s) and  Destructor */
   HM11(volatile uint8_t *rxdPort, uint8_t rxd,
     volatile uint8_t *txdPort, uint8_t txd,
     volatile uint8_t *enPort, uint8_t enPin,
@@ -137,7 +137,7 @@ public:
 
   void forceRenew();  // try this if you can not communicate with the BLE-module anymore
 
-  /* Public static member functions */
+  /* Public class functions (static) */
   static String byteToHexString(uint8_t hex);
   static uint8_t hexStringToByte(String str);
 
@@ -179,12 +179,12 @@ private:
   uint32_t getBaudrate();
   String sendDirectBLECommand(String cmd);
 
-  /* Private static member functions */
+  /* Private class functions (static) */
   static int16_t getFreeRAM();
   static char nibbleToHexCharacter(uint8_t nibble);
   static uint8_t hexCharacterToNibble(char hex);
 
-  // virtual functions
+  /* Private virtual functions */
   virtual void BLESerial_begin(int32_t baudrate);
   virtual void BLESerial_end();
   virtual bool BLESerial_ready();  // while(!BLESerial_ready());
