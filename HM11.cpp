@@ -188,6 +188,11 @@
     DebugBLE_println("");
 
     // //Debug:
+    // sendDirectBLECommand("AT+HELP?", 2000);
+    // sendDirectBLECommand("AT+VERS", 2000);
+    // sendDirectBLECommand("AT+VER?", 2000);
+    // sendDirectBLECommand("AT+VERR?", 2000);
+    // sendDirectBLECommand("AT+VERS?", 2000);
     // getConf(F("MARJ"));
     // getConf(F("MINO"));
     // getConf(F("IBE0"));
@@ -839,10 +844,11 @@
   * \fn     sendDirectBLECommand
   * \brief  sends a direct AT command to the BLE module
   *
-  * \param  cmd  AT command
+  * \param  cmd       AT command
+  * \param  timeout   time in ms before timeout
   * \return response of the BLE module as a string
   --------------------------------------------------------------------------- */
-  String HM11::sendDirectBLECommand(String cmd)
+  String HM11::sendDirectBLECommand(String cmd, uint16_t timeout)
   {
     bool failed = false;
     String response = "";
@@ -873,7 +879,7 @@
       /* stop waiting for more data if we got a '+' */
       if (waitForMore && response.indexOf("+") >= 0) waitForMore = false;
 
-      if ((millis() - startMillis_BLE) >= COMMAND_TIMEOUT_TIME)
+      if ((millis() - startMillis_BLE) >= timeout)
       {
         failed = true;
         response = "error";

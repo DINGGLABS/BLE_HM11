@@ -189,7 +189,7 @@ private:
   bool setBaudrate();
   String getConf(String cmd);
   uint32_t getBaudrate();
-  String sendDirectBLECommand(String cmd);
+  String sendDirectBLECommand(String cmd, uint16_t timeout = COMMAND_TIMEOUT_TIME);
 
   /* Private class functions (static) */
   static int16_t getFreeRAM();
