@@ -148,12 +148,12 @@
     /* control if given parameters are valid */
     if ((iBeacon->name).length() > 12)  {DebugBLE_println(F("name ist too long!")); return;}
     if ((iBeacon->uuid).length() != 32) {DebugBLE_println(F("UUID is invalid!")); return;}
-    if (iBeacon->marjor == 0 || iBeacon->marjor >= 0xFFFE) {DebugBLE_println(F("marjor have to be between 0 and 65'534!")); return;}
+    if (iBeacon->major == 0 || iBeacon->major >= 0xFFFE) {DebugBLE_println(F("major have to be between 0 and 65'534!")); return;}
     if (iBeacon->minor  == 0 || iBeacon->minor  >= 0xFFFE) {DebugBLE_println(F("minor have to be between 0 and 65'534!")); return;}
     if (iBeacon->interv > INTERV_1285MS) {DebugBLE_println(F("unallowed interval!")); return;}
 
     /* convert given parameters to hex values */
-    String marjorHex = byteToHexString(uint8_t((iBeacon->marjor & 0xFF00) >> 8)) + byteToHexString(uint8_t(iBeacon->marjor));
+    String majorHex = byteToHexString(uint8_t((iBeacon->major & 0xFF00) >> 8)) + byteToHexString(uint8_t(iBeacon->major));
     String minorHex  = byteToHexString(uint8_t((iBeacon->minor  & 0xFF00) >> 8)) + byteToHexString(uint8_t(iBeacon->minor));
 
     /* I-Beacon setup */
@@ -161,7 +161,7 @@
       uint32_t t = millis();
     #endif
     //swResetBLE(); // not necessary
-    setConf("MARJ0x" + marjorHex);
+    setConf("MARJ0x" + majorHex);
     setConf("MINO0x" + minorHex);
     setConf("IBE0" + iBeacon->uuid.substring(0, 8));
     setConf("IBE1" + iBeacon->uuid.substring(8, 16));
@@ -295,16 +295,16 @@
 
       DebugBLE_print(F("uuidHex =\t")); DebugBLE_println(iBeacon->uuid);
 
-      /* convert given marjor and minor to hex */
-      String marjorHex = byteToHexString(uint8_t((iBeacon->marjor & 0xFF00) >> 8)) + byteToHexString(uint8_t(iBeacon->marjor));
-      DebugBLE_print(F("marjorHex =\t")); DebugBLE_println(marjorHex);
+      /* convert given major and minor to hex */
+      String majorHex = byteToHexString(uint8_t((iBeacon->major & 0xFF00) >> 8)) + byteToHexString(uint8_t(iBeacon->major));
+      DebugBLE_print(F("majorHex =\t")); DebugBLE_println(majorHex);
       String minorHex = byteToHexString(uint8_t((iBeacon->minor & 0xFF00) >> 8)) + byteToHexString(uint8_t(iBeacon->minor));
       DebugBLE_print(F("minorHex =\t")); DebugBLE_println(minorHex);
 
 
-      /* check for a UUID, marjor and minor match */
+      /* check for a UUID, major and minor match */
       int16_t indexUUID = data.indexOf(iBeacon->uuid);
-      if ((indexUUID >= 0) && (data.indexOf(marjorHex, indexUUID) >= 0) && (data.indexOf(minorHex, indexUUID) >= 0))
+      if ((indexUUID >= 0) && (data.indexOf(majorHex, indexUUID) >= 0) && (data.indexOf(minorHex, indexUUID) >= 0))
       {
         DebugBLE_println(F("match!"));
         match = true;
@@ -313,8 +313,8 @@
         int16_t indexMatch = data.indexOf(iBeacon->uuid) - 9;
         iBeacon->accessAddress = data.substring(indexMatch, indexMatch+8);
         iBeacon->deviceAddress = data.substring(indexMatch+53, indexMatch+65);
-        iBeacon->marjor        = hexStringToByte(data.substring(indexMatch+42, indexMatch+44)) << 8;
-        iBeacon->marjor       |= hexStringToByte(data.substring(indexMatch+44, indexMatch+46));
+        iBeacon->major        = hexStringToByte(data.substring(indexMatch+42, indexMatch+44)) << 8;
+        iBeacon->major       |= hexStringToByte(data.substring(indexMatch+44, indexMatch+46));
         iBeacon->minor         = hexStringToByte(data.substring(indexMatch+46, indexMatch+48)) << 8;
         iBeacon->minor        |= hexStringToByte(data.substring(indexMatch+48, indexMatch+50));
         iBeacon->txPower       = hexStringToByte(data.substring(indexMatch+67, indexMatch+68)) << 8;
@@ -418,8 +418,8 @@
         int16_t indexMatch = data.indexOf(iBeacon->uuid) - 9;
         iBeacon->accessAddress = data.substring(indexMatch, indexMatch+8);
         iBeacon->deviceAddress = data.substring(indexMatch+53, indexMatch+65);
-        iBeacon->marjor        = hexStringToByte(data.substring(indexMatch+42, indexMatch+44)) << 8;
-        iBeacon->marjor       |= hexStringToByte(data.substring(indexMatch+44, indexMatch+46));
+        iBeacon->major        = hexStringToByte(data.substring(indexMatch+42, indexMatch+44)) << 8;
+        iBeacon->major       |= hexStringToByte(data.substring(indexMatch+44, indexMatch+46));
         iBeacon->minor         = hexStringToByte(data.substring(indexMatch+46, indexMatch+48)) << 8;
         iBeacon->minor        |= hexStringToByte(data.substring(indexMatch+48, indexMatch+50));
         iBeacon->txPower       = hexStringToByte(data.substring(indexMatch+67, indexMatch+68)) << 8;
@@ -459,8 +459,8 @@
      //     //DebugBLE_print(F("accessAdr_")); DebugBLE_print(String(n)); DebugBLE_print(F(" =\t")); DebugBLE_println(iBeaconData[n].accessAddress);
      //     iBeaconData[n].uuid = deviceString[n].substring(17, 49);
      //     //DebugBLE_print(F("UUID_")); DebugBLE_print(String(n)); DebugBLE_print(F(" =\t")); DebugBLE_println(iBeaconData[n].uuid);
-     //     iBeaconData[n].marjor = deviceString[n].substring(50, 54);
-     //     DebugBLE_print(F("Major_")); DebugBLE_print(n); DebugBLE_print(F(" =\t")); DebugBLE_println(iBeaconData[n].marjor);
+     //     iBeaconData[n].major = deviceString[n].substring(50, 54);
+     //     DebugBLE_print(F("Major_")); DebugBLE_print(n); DebugBLE_print(F(" =\t")); DebugBLE_println(iBeaconData[n].major);
      //     iBeaconData[n].minor = deviceString[n].substring(54, 58);
      //     //DebugBLE_print(F("Minor_")); DebugBLE_print(n); DebugBLE_print(F(" =\t")); DebugBLE_println(iBeaconData[n].minor);
      //     iBeaconData[n].deviceAddress = deviceString[n].substring(61, 73);
@@ -470,7 +470,7 @@
      //     DebugBLE_println("");
 
      //     /* handle match */
-     //     if (iBeaconData[currentMatchDeviceNr].marjor == String(KEY_MAJOR_ID))
+     //     if (iBeaconData[currentMatchDeviceNr].major == String(KEY_MAJOR_ID))
      //     {
      //       currentMatchDeviceNr = n;
      //       DebugBLE_print(F("Device ")); DebugBLE_print(currentMatchDeviceNr); DebugBLE_println(F(" mached!"));
