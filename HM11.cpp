@@ -668,7 +668,7 @@
   void HM11::hwResetBLE()
   {
     clearBit(*rstPort_, rstPin_);
-    delay(5);
+    delay(RESET_DELAY);
     setBit(*rstPort_, rstPin_);
     uint32_t ms = millis();
     while(!sendDirectBLECommand(F("AT")).startsWith(F("OK")) && ((millis() - ms) < MAX_DELAY_AFTER_HW_RESET_BLE));
